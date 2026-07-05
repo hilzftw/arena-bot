@@ -16,7 +16,7 @@ import discord
 import blizzard
 import db
 import ironforge
-from config import settings, RATING_ROLE_KEYS
+from config import settings, RATING_ROLE_KEYS, COLOR_BLUE
 
 log = logging.getLogger("core")
 
@@ -162,3 +162,18 @@ def is_staff(member: discord.Member) -> bool:
 
 def guest_expiry_ts() -> int:
     return int(time.time()) + settings.guest_expiration_days * 86400
+
+
+async def log_event(guild: Optional[discord.Guild], description: str,
+                    color: int = COLOR_BLUE) -> None:
+    """Post an audit entry to #bot-logs. No-op if the channel doesn't exist."""
+    if guild is None:
+        return
+    channel = discord.utils.get(guild.text_channels, name="bot-logs")
+    if channel is None:
+        return
+    try:
+        await channel.send(embed=discord.Embed(
+            description=description, color=color, timestamp=discord.utils.utcnow()))
+    except discord.HTTPException:
+        pass

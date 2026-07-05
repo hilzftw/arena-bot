@@ -31,7 +31,9 @@ logging.basicConfig(
 )
 log = logging.getLogger("bot")
 
-COGS = ("cogs.verification", "cogs.lfg", "cogs.moderation", "cogs.admin_setup")
+COGS = ["cogs.verification", "cogs.lfg", "cogs.moderation", "cogs.admin_setup"]
+if settings.twitch_enabled:
+    COGS.append("cogs.twitch")
 
 
 class ArenaBot(commands.Bot):

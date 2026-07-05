@@ -52,6 +52,10 @@ class Moderation(commands.Cog):
         # Mark permanent in DB (NULL expiry) if they have a record.
         if await db.get_user(str(member.id)):
             await db.set_expiry(str(member.id), None)
+        await core.log_event(
+            interaction.guild,
+            f"⭐ {member.mention} promoted to **Friend** by {interaction.user.mention}",
+            COLOR_GREEN)
         await interaction.response.send_message(
             f"✅ {member.mention} is now a permanent **Friend** and will never expire.",
             ephemeral=True)
@@ -85,6 +89,10 @@ class Moderation(commands.Cog):
             await interaction.response.send_message(
                 "⚠️ Recorded, but I lack Ban Members permission.", ephemeral=True)
             return
+        await core.log_event(
+            interaction.guild,
+            f"⛔ {member.mention} blacklisted and banned by {interaction.user.mention}"
+            + (f" — {reason}" if reason else ""), COLOR_RED)
         await interaction.response.send_message(
             f"✅ {member.mention} blacklisted and banned.", ephemeral=True)
 
@@ -121,8 +129,16 @@ class Moderation(commands.Cog):
             ephemeral=True)
 
     async def _run_cleanup(self, guild: discord.Guild) -> tuple[int, int]:
-        """Remove expired guests + never-verified stragglers. Returns (guests, stragglers)."""
+        """Remove expired guests + never-verified stragglers. Returns (guests, stragglers).
+
+        Admin, Moderator, Friend, and BIS are always exempt — they never need to
+        verify and are never auto-removed.
+        """
         protected = {settings.friend_role_id, settings.mod_role_id, settings.admin_role_id}
+        bis_role = discord.utils.get(guild.roles, name="BIS")
+        if bis_role:
+            protected.add(bis_role.id)
+        protected.discard(0)
         guest_role_id = settings.guest_role_id
 
         def is_protected(m: discord.Member) -> bool:
@@ -173,6 +189,9 @@ class Moderation(commands.Cog):
             g, s = await self._run_cleanup(guild)
             if g or s:
                 log.info("Auto-cleanup: %d guests, %d stragglers removed", g, s)
+                await core.log_event(
+                    guild, f"🧹 Auto-cleanup removed {g} expired guest(s) "
+                    f"and {s} unverified straggler(s).")
 
     @cleanup_loop.before_loop
     async def _before(self) -> None:

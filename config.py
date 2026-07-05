@@ -74,6 +74,7 @@ class Settings:
     # Channels
     verify_channel_id: int
     lfg_channel_ids: dict[str, int]        # "2v2" -> channel id
+    voice_category_id: int
 
     # Class/spec cosmetic roles resolved by name (auto-created if enabled)
     manage_class_spec_roles: bool
@@ -97,8 +98,19 @@ class Settings:
     blizzard_client_id: str
     blizzard_client_secret: str
 
+    # Twitch "now live" notifications (optional)
+    twitch_client_id: str
+    twitch_client_secret: str
+    twitch_streamers: tuple[str, ...]
+    twitch_channel_id: int
+    twitch_poll_minutes: int
+
     # Storage
     db_path: str
+
+    @property
+    def twitch_enabled(self) -> bool:
+        return bool(self.twitch_client_id and self.twitch_client_secret and self.twitch_streamers)
 
     @classmethod
     def load(cls) -> "Settings":
@@ -127,6 +139,7 @@ class Settings:
             rating_role_ids=rating_role_ids,
             verify_channel_id=_int("VERIFY_CHANNEL_ID"),
             lfg_channel_ids=lfg_channel_ids,
+            voice_category_id=_int("VOICE_CATEGORY_ID"),
             manage_class_spec_roles=_str("MANAGE_CLASS_SPEC_ROLES", "true").lower() == "true",
             guest_expiration_days=_int("GUEST_EXPIRATION_DAYS", 30),
             verify_timeout_hours=_int("VERIFY_TIMEOUT_HOURS", 24),
@@ -138,6 +151,13 @@ class Settings:
             region=region,
             blizzard_client_id=_str("BLIZZARD_CLIENT_ID"),
             blizzard_client_secret=_str("BLIZZARD_CLIENT_SECRET"),
+            twitch_client_id=_str("TWITCH_CLIENT_ID"),
+            twitch_client_secret=_str("TWITCH_CLIENT_SECRET"),
+            twitch_streamers=tuple(
+                s.strip().lower() for s in _str("TWITCH_STREAMERS").split(",") if s.strip()
+            ),
+            twitch_channel_id=_int("TWITCH_CHANNEL_ID"),
+            twitch_poll_minutes=_int("TWITCH_POLL_MINUTES", 3),
             db_path=_str("DB_PATH", "bot.db"),
         )
 

@@ -64,6 +64,10 @@ async def _do_verify(interaction: discord.Interaction, character_realm: str) -> 
     await interaction.followup.send(embed=_verify_result_embed(character, realm, result),
                                     ephemeral=True)
     log.info("Verified %s -> %s-%s (rating=%s)", interaction.user, character, realm, result.rating)
+    await core.log_event(
+        interaction.guild,
+        f"✅ {interaction.user.mention} verified as **{character}-{realm}** — "
+        f"{result.role_key or 'Unranked'} ({result.rating:,})", COLOR_GREEN)
 
 
 class VerifyModal(discord.ui.Modal, title="Verify your character"):
@@ -100,6 +104,31 @@ class VerifyPanel(discord.ui.View):
                 "You haven't verified yet — click **Verify Character**.", ephemeral=True)
             return
         await interaction.followup.send(embed=profile_embed(interaction.user, data), ephemeral=True)
+
+    @discord.ui.button(label="I don't PvP", emoji="👀",
+                       style=discord.ButtonStyle.secondary, custom_id="ns:social")
+    async def spectator(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
+        social = discord.utils.get(interaction.guild.roles, name="Social")
+        if social is None:
+            await interaction.response.send_message(
+                "Spectator access isn't set up yet — ask an admin to run `/setup-server`.",
+                ephemeral=True)
+            return
+        if social in interaction.user.roles:
+            await interaction.response.send_message(
+                "You already have spectator access. 👀", ephemeral=True)
+            return
+        try:
+            await interaction.user.add_roles(social, reason="Non-PvP / spectator access")
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                "⚠️ Couldn't assign the role — my role needs to sit above **Social**.",
+                ephemeral=True)
+            return
+        await interaction.response.send_message(
+            "👀 Welcome! You've got access to the community channels. The **arena** stays "
+            "PvP-only — verify a character any time to unlock LFG and queue with us.",
+            ephemeral=True)
 
     @discord.ui.button(label="Help", emoji="❓",
                        style=discord.ButtonStyle.secondary, custom_id="ns:help")

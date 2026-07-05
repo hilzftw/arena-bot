@@ -137,11 +137,24 @@ class AdminSetup(commands.Cog):
         bis = self._role(guild, "BIS")
         admin = self._role(guild, "admin", "Admin")
         mod = self._role(guild, "Moderator", "Mod")
+        social = self._role(guild, "Social")
+        if social is None:
+            try:
+                social = await guild.create_role(
+                    name="Social", colour=discord.Colour(0x95A5A6), hoist=True,
+                    reason="Non-PvP / spectator access")
+                self._note("Created role Social")
+            except discord.HTTPException:
+                social = None
 
-        def gated() -> dict:
-            """Hidden from @everyone, visible to any verified/staff role."""
+        def gated(include_social: bool = False) -> dict:
+            """Hidden from @everyone, visible to verified/staff roles. Community and
+            voice include Social (non-PvP); the arena stays PvP-verified only."""
             o = {everyone: ow(view_channel=False), me: ow(view_channel=True)}
-            for r in (guest, friend, bis, admin, mod):
+            roles = [guest, friend, bis, admin, mod]
+            if include_social:
+                roles.append(social)
+            for r in roles:
                 if r:
                     o[r] = ow(view_channel=True, connect=True)
             return o
@@ -159,8 +172,8 @@ class AdminSetup(commands.Cog):
                 everyone: ow(view_channel=True, send_messages=False),
                 me: ow(view_channel=True, send_messages=True)})
 
-            # 2. COMMUNITY — gated.
-            community = await self._category(guild, COMMUNITY, gated())
+            # 2. COMMUNITY — gated (includes Social / non-PvP).
+            community = await self._category(guild, COMMUNITY, gated(include_social=True))
             await self._text(guild, "general", community)
             await self._text(guild, "twitchy-p-clips", community)
             await self._text(guild, "music", community)
@@ -196,8 +209,8 @@ class AdminSetup(commands.Cog):
             bis_cat = await self._category(guild, BIS, bis_ovw)
             await self._text(guild, "bis-lounge", bis_cat)
 
-            # 6. VOICE — gated; Mike P's restricted to owner + admin + BIS.
-            voice = await self._category(guild, VOICE, gated())
+            # 6. VOICE — gated (includes Social); Mike P's restricted to owner + admin + BIS.
+            voice = await self._category(guild, VOICE, gated(include_social=True))
             await self._move_voice(guild, "gnome lives matter", voice, sync=True)
             mike = await self._move_voice(guild, "mike p's self play", voice, sync=False,
                                           rename="Mike P's Self Play Service")
@@ -218,6 +231,9 @@ class AdminSetup(commands.Cog):
                     await cat.edit(position=i)
                 except discord.HTTPException:
                     pass
+
+            # Hoist structural roles so the member-list groups them separately.
+            await self._hoist_roles(guild)
 
             # Native AFK.
             await self._setup_afk(guild)
@@ -265,6 +281,22 @@ class AdminSetup(commands.Cog):
             await ch.edit(sync_permissions=True)
         self._note(f"Configured voice {ch.name}")
         return ch
+
+    async def _hoist_roles(self, guild: discord.Guild) -> None:
+        """Show structural roles as separate groups in the member list; keep the
+        cosmetic rating/class/spec roles out of that grouping."""
+        hoist = {"admin", "moderator", "bis", "friend", "guest", "social"}
+        flat = {"unranked", "1400+", "1800+", "2100+", "gladiator", "merciless gladiator"}
+        for role in guild.roles:
+            nm = role.name.lower()
+            try:
+                if nm in hoist and not role.hoist:
+                    await role.edit(hoist=True)
+                    self._note(f"Separated role {role.name} in member list")
+                elif nm in flat and role.hoist:
+                    await role.edit(hoist=False)
+            except discord.HTTPException:
+                pass
 
     async def _setup_afk(self, guild: discord.Guild) -> None:
         afk = discord.utils.find(
