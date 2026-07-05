@@ -1,16 +1,16 @@
 """
-WoW Arena Discord Bot â TBC Anniversary Classic
-Season 2 â 3  |  discord.py 2.x  |  July 2026
+WoW Arena Discord Bot \u2014 TBC Anniversary Classic
+Season 2 \u2192 3  |  discord.py 2.x  |  July 2026
 
 Commands:
-  /verify <character-realm>    â gate + role assignment
-  /lfg                         â post LFG queue card
-  /session start               â create temp voice channel
-  /session end <wins> <losses> â post session summary
-  /re-verify <member>          â admin: force re-verify
-  /purge-unverified            â admin: kick all unverified
-  /grant-bis <member>          â admin: grant BIS role
-  /revoke-bis <member>         â admin: revoke BIS role
+  /verify <character-realm>    \u2014 gate + role assignment
+  /lfg                         \u2014 post LFG queue card
+  /session start               \u2014 create temp voice channel
+  /session end <wins> <losses> \u2014 post session summary
+  /re-verify <member>          \u2014 admin: force re-verify
+  /purge-unverified            \u2014 admin: kick all unverified
+  /grant-bis <member>          \u2014 admin: grant BIS role
+  /revoke-bis <member>         \u2014 admin: revoke BIS role
 """
 import asyncio
 import logging
@@ -30,7 +30,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("bot")
 
-# ââ Bot setup ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# \u2500\u2500 Bot setup \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 intents = discord.Intents.default()
 intents.members = True
@@ -39,7 +39,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 guild_obj = discord.Object(id=config.GUILD_ID)
 
 
-# ââ Helpers ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# \u2500\u2500 Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def _get_guild(interaction: discord.Interaction) -> discord.Guild:
     return interaction.guild
@@ -64,14 +64,14 @@ async def _assign_role(member: discord.Member, role_name: str):
     guild = member.guild
     role = discord.utils.get(guild.roles, name=role_name)
     if role is None:
-        log.warning("Role '%s' not found in guild â create it first", role_name)
+        log.warning("Role '%s' not found in guild \u2014 create it first", role_name)
         return
     await _clear_pvp_roles(member)
     await member.add_roles(role, reason=f"Arena verify: {role_name}")
 
 
 def _parse_character_realm(arg: str) -> tuple[str, str] | None:
-    """Parse 'CharacterName-RealmName' â (character, realm). Returns None on bad format."""
+    """Parse 'CharacterName-RealmName' \u2192 (character, realm). Returns None on bad format."""
     if "-" not in arg:
         return None
     idx = arg.index("-")
@@ -117,7 +117,7 @@ async def _run_verify(discord_id: str, character: str, server: str,
                       "Check spelling and realm name.")
 
 
-# ââ /verify âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# \u2500\u2500 /verify \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.tree.command(name="verify", description="Verify your TBC Classic arena character.",
                   guild=guild_obj)
@@ -128,7 +128,7 @@ async def cmd_verify(interaction: discord.Interaction, character_realm: str):
     parsed = _parse_character_realm(character_realm)
     if not parsed:
         await interaction.followup.send(
-            "â Format: `/verify CharacterName-RealmName`  e.g. `/verify Brutus-Whitemane`",
+            "\u274C Format: `/verify CharacterName-RealmName`  e.g. `/verify Brutus-Whitemane`",
             ephemeral=True
         )
         return
@@ -137,7 +137,7 @@ async def cmd_verify(interaction: discord.Interaction, character_realm: str):
     result = await _run_verify(str(interaction.user.id), character, realm)
 
     if not result["found"]:
-        await interaction.followup.send(f"â {result['error']}", ephemeral=True)
+        await interaction.followup.send(f"\u274C {result['error']}", ephemeral=True)
         return
 
     await _assign_role(interaction.user, result["role"])
@@ -147,7 +147,7 @@ async def cmd_verify(interaction: discord.Interaction, character_realm: str):
     bracket_str = f" ({result['bracket']})" if result.get("bracket") else ""
 
     embed = discord.Embed(
-        title="â Verified",
+        title="\u2705 Verified",
         color=discord.Color.green() if result["rating"] >= 1800 else discord.Color.blue(),
     )
     embed.add_field(name="Character", value=f"{character}-{realm}", inline=True)
@@ -155,13 +155,13 @@ async def cmd_verify(interaction: discord.Interaction, character_realm: str):
     embed.add_field(name="Spec",      value=spec_str, inline=True)
     embed.add_field(name="Role",      value=result["role"], inline=True)
     if result["source"] == "blizzard_fallback":
-        embed.set_footer(text="Not on Ironforge ladder â assigned Unranked. Play ranked games and re-verify.")
+        embed.set_footer(text="Not on Ironforge ladder \u2014 assigned Unranked. Play ranked games and re-verify.")
 
     await interaction.followup.send(embed=embed, ephemeral=True)
-    log.info("Verified %s â %s (%s) rating=%s", interaction.user, character, realm, result["rating"])
+    log.info("Verified %s \u2192 %s (%s) rating=%s", interaction.user, character, realm, result["rating"])
 
 
-# ââ /re-verify (admin) âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# \u2500\u2500 /re-verify (admin) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.tree.command(name="re-verify", description="[Admin] Force re-verify a member.",
                   guild=guild_obj)
@@ -169,25 +169,25 @@ async def cmd_verify(interaction: discord.Interaction, character_realm: str):
 async def cmd_reverify(interaction: discord.Interaction, member: discord.Member):
     await interaction.response.defer(ephemeral=True)
     if not _is_admin(interaction.user):
-        await interaction.followup.send("â You need the Officer role to use this.", ephemeral=True)
+        await interaction.followup.send("\u274C You need the Officer role to use this.", ephemeral=True)
         return
     user_data = await db.get_user(str(member.id))
     if not user_data:
-        await interaction.followup.send(f"â {member.mention} has no verified character on record.", ephemeral=True)
+        await interaction.followup.send(f"\u274C {member.mention} has no verified character on record.", ephemeral=True)
         return
 
     result = await _run_verify(str(member.id), user_data["character"], user_data["server"])
     if not result["found"]:
-        await interaction.followup.send(f"â Character lookup failed: {result['error']}", ephemeral=True)
+        await interaction.followup.send(f"\u274C Character lookup failed: {result['error']}", ephemeral=True)
         return
 
     await _assign_role(member, result["role"])
     await interaction.followup.send(
-        f"â {member.mention} re-verified â **{result['role']}** ({result['rating']:,})", ephemeral=True
+        f"\u2705 {member.mention} re-verified \u2192 **{result['role']}** ({result['rating']:,})", ephemeral=True
     )
 
 
-# ââ /purge-unverified (admin) ââââââââââââââââââââââââââââââââââââââââââââââââââ
+# \u2500\u2500 /purge-unverified (admin) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.tree.command(name="purge-unverified",
                   description="[Admin] Kick all members with no PvP role.",
@@ -195,7 +195,7 @@ async def cmd_reverify(interaction: discord.Interaction, member: discord.Member)
 async def cmd_purge(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     if not _is_admin(interaction.user):
-        await interaction.followup.send("â You need the Officer role to use this.", ephemeral=True)
+        await interaction.followup.send("\u274C You need the Officer role to use this.", ephemeral=True)
         return
     guild = _get_guild(interaction)
     kicked = 0
@@ -209,10 +209,10 @@ async def cmd_purge(interaction: discord.Interaction):
                 kicked += 1
             except discord.Forbidden:
                 pass
-    await interaction.followup.send(f"â Kicked {kicked} unverified member(s).", ephemeral=True)
+    await interaction.followup.send(f"\u2705 Kicked {kicked} unverified member(s).", ephemeral=True)
 
 
-# ââ BIS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# \u2500\u2500 BIS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.tree.command(name="grant-bis", description="[Admin] Grant BIS role to a member.",
                   guild=guild_obj)
@@ -220,20 +220,20 @@ async def cmd_purge(interaction: discord.Interaction):
 async def cmd_grant_bis(interaction: discord.Interaction, member: discord.Member):
     await interaction.response.defer(ephemeral=True)
     if not _is_admin(interaction.user):
-        await interaction.followup.send("â You need the Officer role to use this.", ephemeral=True)
+        await interaction.followup.send("\u274C You need the Officer role to use this.", ephemeral=True)
         return
     guild = _get_guild(interaction)
     bis_role = discord.utils.get(guild.roles, name=config.ROLE_BIS)
     if bis_role is None:
         await interaction.followup.send(
-            f"â Role `{config.ROLE_BIS}` not found â create it in your server first.", ephemeral=True
+            f"\u274C Role `{config.ROLE_BIS}` not found \u2014 create it in your server first.", ephemeral=True
         )
         return
     if bis_role in member.roles:
-        await interaction.followup.send(f"â¹ï¸ {member.mention} already has BIS.", ephemeral=True)
+        await interaction.followup.send(f"\u2139\uFE0F {member.mention} already has BIS.", ephemeral=True)
         return
     await member.add_roles(bis_role, reason=f"BIS granted by {interaction.user}")
-    await interaction.followup.send(f"â BIS granted to {member.mention}.", ephemeral=True)
+    await interaction.followup.send(f"\u2705 BIS granted to {member.mention}.", ephemeral=True)
     log.info("BIS granted to %s by %s", member, interaction.user)
 
 
@@ -243,19 +243,19 @@ async def cmd_grant_bis(interaction: discord.Interaction, member: discord.Member
 async def cmd_revoke_bis(interaction: discord.Interaction, member: discord.Member):
     await interaction.response.defer(ephemeral=True)
     if not _is_admin(interaction.user):
-        await interaction.followup.send("â You need the Officer role to use this.", ephemeral=True)
+        await interaction.followup.send("\u274C You need the Officer role to use this.", ephemeral=True)
         return
     guild = _get_guild(interaction)
     bis_role = discord.utils.get(guild.roles, name=config.ROLE_BIS)
     if bis_role is None or bis_role not in member.roles:
-        await interaction.followup.send(f"â¹ï¸ {member.mention} doesn't have BIS.", ephemeral=True)
+        await interaction.followup.send(f"\u2139\uFE0F {member.mention} doesn't have BIS.", ephemeral=True)
         return
     await member.remove_roles(bis_role, reason=f"BIS revoked by {interaction.user}")
-    await interaction.followup.send(f"â BIS revoked from {member.mention}.", ephemeral=True)
+    await interaction.followup.send(f"\u2705 BIS revoked from {member.mention}.", ephemeral=True)
     log.info("BIS revoked from %s by %s", member, interaction.user)
 
 
-# ââ LFG âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# \u2500\u2500 LFG \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 BRACKET_CHOICES = [
     app_commands.Choice(name="2v2", value="2v2"),
@@ -304,16 +304,16 @@ def _lfg_embed(member: discord.Member, bracket: str, spec: str, rating: int,
                target_min: int, target_max: int, active: bool = True) -> discord.Embed:
     color = discord.Color.green() if active else discord.Color.dark_gray()
     embed = discord.Embed(
-        title=f"{'ð¢' if active else 'â'} LFG â {bracket}",
+        title=f"{'\U0001F7E2' if active else '\u231B'} LFG \u2014 {bracket}",
         color=color,
         timestamp=discord.utils.utcnow(),
     )
     embed.set_author(name=member.display_name, icon_url=member.display_avatar.url)
     embed.add_field(name="Spec",         value=spec,                     inline=True)
     embed.add_field(name="Rating",       value=f"{rating:,}",            inline=True)
-    embed.add_field(name="Target Range", value=f"{target_min|â{target_max}", inline=True)
+    embed.add_field(name="Target Range", value=f"{target_min}\u2013{target_max}", inline=True)
     if not active:
-        embed.set_footer(text="â Expired")
+        embed.set_footer(text="\u231B Expired")
     return embed
 
 
@@ -350,7 +350,7 @@ class LFGJoinView(ui.View):
         if not (poster_entry["target_min"] <= joiner_rating <= poster_entry["target_max"]):
             await interaction.response.send_message(
                 f"Your rating ({joiner_rating:,}) is outside this queue's target range "
-                f"({poster_entry['target_min']}â{poster_entry['target_max']}).",
+                f"({poster_entry['target_min']}\u2013{poster_entry['target_max']}).",
                 ephemeral=True
             )
             return
@@ -362,7 +362,7 @@ class LFGJoinView(ui.View):
         char_j = f"{joiner_data['character']}-{joiner_data['server']}"
         try:
             await poster.send(
-                f"ð¯ **LFG Match â {self.bracket}**\n"
+                f"\U0001F3AF **LFG Match \u2014 {self.bracket}**\n"
                 f"{joiner.display_name} ({char_j}) wants to queue with you!\n"
                 f"Spec: {joiner_data.get('spec','?')} | Rating: {joiner_rating:,}"
             )
@@ -370,7 +370,7 @@ class LFGJoinView(ui.View):
             pass
         try:
             await joiner.send(
-                f"ð¯ **LFG Match â {self.bracket}**\n"
+                f"\U0001F3AF **LFG Match \u2014 {self.bracket}**\n"
                 f"{poster.display_name} ({char_p}) is your match!\n"
                 f"Spec: {poster_entry['spec']} | Rating: {poster_entry['rating']:,}"
             )
@@ -378,7 +378,7 @@ class LFGJoinView(ui.View):
             pass
 
         await interaction.response.send_message(
-            f"â Match found! Both players have been DM'd. Good luck! ð", ephemeral=True
+            f"\u2705 Match found! Both players have been DM'd. Good luck! \U0001F3C6", ephemeral=True
         )
         await db.deactivate_queue_entry(self.entry_id)
 
@@ -402,21 +402,21 @@ async def cmd_lfg(interaction: discord.Interaction,
 
     user_data = await db.get_user(str(interaction.user.id))
     if not user_data:
-        await interaction.followup.send("â You must `/verify` before using LFG.", ephemeral=True)
+        await interaction.followup.send("\u274C You must `/verify` before using LFG.", ephemeral=True)
         return
 
     guild  = _get_guild(interaction)
     ch_name = config.LFG_CHANNELS.get(bracket.value)
     channel = discord.utils.get(guild.text_channels, name=ch_name)
     if channel is None:
-        await interaction.followup.send(f"â Channel `#{ch_name}` not found.", ephemeral=True)
+        await interaction.followup.send(f"\u274C Channel `#{ch_name}` not found.", ephemeral=True)
         return
 
     role_val   = config.spec_role(spec.value)
     class_val  = user_data.get("class", "Unknown")
     embed      = _lfg_embed(interaction.user, bracket.value, spec.value, rating, target_min, target_max)
 
-    # Placeholder message â get ID before inserting to DB
+    # Placeholder message \u2014 get ID before inserting to DB
     msg = await channel.send(embed=embed)
 
     entry_id = await db.add_queue_entry(
@@ -434,10 +434,10 @@ async def cmd_lfg(interaction: discord.Interaction,
 
     view = LFGJoinView(entry_id, interaction.user.id, bracket.value)
     await msg.edit(view=view)
-    await interaction.followup.send(f"â Queue card posted in {channel.mention}.", ephemeral=True)
+    await interaction.followup.send(f"\u2705 Queue card posted in {channel.mention}.", ephemeral=True)
 
 
-# ââ /session ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# \u2500\u2500 /session \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.tree.command(name="session-start", description="Start an arena session and create a voice channel.",
                   guild=guild_obj)
@@ -450,7 +450,7 @@ async def cmd_session_start(interaction: discord.Interaction,
     guild = _get_guild(interaction)
 
     # Create temporary voice channel
-    channel_name = f"ð¥ {comp} {bracket.value}"
+    channel_name = f"\U0001F525 {comp} {bracket.value}"
     category = discord.utils.get(guild.categories, name="Arena Sessions")
     vc = await guild.create_voice_channel(channel_name, category=category)
 
@@ -458,7 +458,7 @@ async def cmd_session_start(interaction: discord.Interaction,
         str(interaction.user.id), bracket.value, comp, str(vc.id)
     )
     await interaction.followup.send(
-        f"â Session started! Voice: {vc.mention}\nSession ID: `{session_id}`",
+        f"\u2705 Session started! Voice: {vc.mention}\nSession ID: `{session_id}`",
         ephemeral=True
     )
 
@@ -470,7 +470,7 @@ async def cmd_session_end(interaction: discord.Interaction, wins: int, losses: i
     await interaction.response.defer(ephemeral=True)
     session = await db.get_active_session(str(interaction.user.id))
     if not session:
-        await interaction.followup.send("â No active session found.", ephemeral=True)
+        await interaction.followup.send("\u274C No active session found.", ephemeral=True)
         return
 
     await db.end_session(session["id"], wins, losses)
@@ -489,17 +489,17 @@ async def cmd_session_end(interaction: discord.Interaction, wins: int, losses: i
     elapsed = int(time.time()) - session["started_at"]
     mins    = elapsed // 60
 
-    embed = discord.Embed(title="ð Session Summary", color=discord.Color.gold())
+    embed = discord.Embed(title="\U0001F4CA Session Summary", color=discord.Color.gold())
     embed.add_field(name="Comp",    value=session["comp"],   inline=True)
     embed.add_field(name="Bracket", value=session["bracket"],inline=True)
-    embed.add_field(name="Record",  value=f"{wins}Wâ{losses}L ({wr}%)", inline=True)
+    embed.add_field(name="Record",  value=f"{wins}W\u2013{losses}L ({wr}%)", inline=True)
     embed.add_field(name="Duration",value=f"{mins} min",    inline=True)
     embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
 
     await interaction.followup.send(embed=embed)
 
 
-# ââ Events âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# \u2500\u2500 Events \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.event
 async def on_member_join(member: discord.Member):
@@ -514,9 +514,9 @@ async def on_member_join(member: discord.Member):
     if not has_pvp_role:
         try:
             await fresh.kick(reason=f"Did not verify within {config.VERIFY_TIMEOUT_HOURS}h")
-            log.info("Auto-kicked %s â check bot permissions", fresh)
+            log.info("Auto-kicked %s \u2014 no verify", fresh)
         except discord.Forbidden:
-            log.warning("Couldn't kick %s â check bot permissions", fresh)
+            log.warning("Couldn't kick %s \u2014 check bot permissions", fresh)
 
 
 @bot.event
@@ -536,21 +536,21 @@ async def on_ready():
     log.info("Scheduler started")
 
 
-# ââ Error handlers âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# \u2500\u2500 Error handlers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @cmd_verify.error
 @cmd_purge.error
 @cmd_reverify.error
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     if isinstance(error, app_commands.MissingPermissions):
-        await interaction.response.send_message("â You don't have permission to use this command.", ephemeral=True)
+        await interaction.response.send_message("\u274C You don't have permission to use this command.", ephemeral=True)
     else:
         log.error("Command error: %s", error)
         if not interaction.response.is_done():
-            await interaction.response.send_message("â An error occurred. Check logs.", ephemeral=True)
+            await interaction.response.send_message("\u274C An error occurred. Check logs.", ephemeral=True)
 
 
-# ââ Entry point ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# \u2500\u2500 Entry point \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 if __name__ == "__main__":
     if not config.DISCORD_TOKEN:
