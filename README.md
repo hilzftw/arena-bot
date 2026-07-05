@@ -2,8 +2,8 @@
 
 A lightweight personal Discord bot for finding **TBC Anniversary Classic** arena
 partners. Members verify their character, receive PvP roles, and click **Join
-Queue** when you post an LFG — the bot DMs both players and opens a private voice
-room. Guests expire automatically; Friends never do.
+Queue** when you post an LFG — the bot DMs both players. Guests expire
+automatically; Friends never do.
 
 ## Features
 
@@ -12,7 +12,7 @@ room. Guests expire automatically; Friends never do.
   assigns rating + class + spec roles.
 - **LFG** — `/lfg <bracket>` posts a clean card. Optional rating preference. One
   click matches players and DMs them both.
-- **Voice** — a private temp channel is created per match and auto-deleted when empty.
+- **Setup** — `/setup-server confirm:True` builds or repairs the full server layout.
 - **Friends** — `/friend add|remove @user` toggles permanent membership.
 - **Blacklist** — `/blacklist add @user` / `/blacklist remove <id>` bans/unbans.
 - **Whois** — `/whois @user` shows a member's verified character.
@@ -30,7 +30,7 @@ ironforge.py           Ironforge.pro ladder cache + rating-role mapping
 blizzard.py            Blizzard Classic existence-check fallback
 cogs/verification.py   /verify, persistent Verify/Profile/Help panel
 cogs/lfg.py            /lfg, persistent Join button, expiry loop
-cogs/voice.py          temp room creation + auto-delete
+cogs/admin_setup.py     /setup-server and server provisioning
 cogs/moderation.py     /friend, /blacklist, /whois, /cleanup, join gate
 ```
 

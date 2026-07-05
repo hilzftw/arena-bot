@@ -74,7 +74,6 @@ class Settings:
     # Channels
     verify_channel_id: int
     lfg_channel_ids: dict[str, int]        # "2v2" -> channel id
-    voice_category_id: int
 
     # Class/spec cosmetic roles resolved by name (auto-created if enabled)
     manage_class_spec_roles: bool
@@ -128,7 +127,6 @@ class Settings:
             rating_role_ids=rating_role_ids,
             verify_channel_id=_int("VERIFY_CHANNEL_ID"),
             lfg_channel_ids=lfg_channel_ids,
-            voice_category_id=_int("VOICE_CATEGORY_ID"),
             manage_class_spec_roles=_str("MANAGE_CLASS_SPEC_ROLES", "true").lower() == "true",
             guest_expiration_days=_int("GUEST_EXPIRATION_DAYS", 30),
             verify_timeout_hours=_int("VERIFY_TIMEOUT_HOURS", 24),

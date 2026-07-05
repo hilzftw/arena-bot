@@ -3,7 +3,7 @@ Nightslayer Arenas — TBC Anniversary Classic PvP bot.
 
 A lightweight personal assistant for finding arena partners:
   • /verify + a persistent panel assign PvP roles
-  • /lfg posts a Join card; the bot DMs matched players and opens a voice room
+  • /lfg posts a Join card; the bot DMs both matched players to team up
   • Guests expire automatically; Friends never do
   • /friend, /blacklist, /whois, /cleanup for light moderation
 
@@ -31,14 +31,13 @@ logging.basicConfig(
 )
 log = logging.getLogger("bot")
 
-COGS = ("cogs.verification", "cogs.lfg", "cogs.voice", "cogs.moderation")
+COGS = ("cogs.verification", "cogs.lfg", "cogs.moderation", "cogs.admin_setup")
 
 
 class ArenaBot(commands.Bot):
     def __init__(self) -> None:
         intents = discord.Intents.default()
         intents.members = True          # required for role assignment & member events
-        intents.voice_states = True     # required for temp-room auto-delete
         super().__init__(command_prefix="!", intents=intents, help_command=None)
         self.guild_obj = discord.Object(id=settings.guild_id)
 

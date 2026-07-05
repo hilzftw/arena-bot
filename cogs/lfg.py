@@ -4,8 +4,7 @@ Looking For Group.
 /lfg posts a clean card in the bracket channel. Everything but the bracket and an
 optional rating preference is pulled from the poster's verify record. Interested
 players click Join Queue (a persistent DynamicItem button keyed by entry id, so it
-survives restarts) and the bot DMs both players and asks the voice cog to spin up a
-private room.
+survives restarts) and the bot DMs both players to connect.
 """
 from __future__ import annotations
 
@@ -115,13 +114,9 @@ class LFGJoinButton(discord.ui.DynamicItem[discord.ui.Button],
         except discord.HTTPException:
             pass
 
-        # Ask the voice cog (if loaded) to create a private room.
-        if poster_member:
-            interaction.client.dispatch(
-                "lfg_match", poster_member, interaction.user, entry["bracket"])
-
         await interaction.followup.send(
-            "✅ Match found! Both players have been DM'd.", ephemeral=True)
+            "✅ Match found! Both players have been DM'd — hop into an arena voice channel.",
+            ephemeral=True)
 
 
 async def _safe_dm(member: discord.Member, content: str) -> None:
