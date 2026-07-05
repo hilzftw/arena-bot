@@ -84,6 +84,10 @@ class Settings:
     verify_timeout_hours: int
     queue_expiry_minutes: int
     cache_refresh_minutes: int
+    # When False (default), the bot NEVER kicks members who simply never verified.
+    # Only turn this on after the verify gate is established, or it will remove
+    # existing members who predate the bot. Expired-guest cleanup is unaffected.
+    enforce_verification: bool
 
     # Ironforge
     ironforge_base: str
@@ -130,6 +134,7 @@ class Settings:
             verify_timeout_hours=_int("VERIFY_TIMEOUT_HOURS", 24),
             queue_expiry_minutes=_int("QUEUE_EXPIRY_MINUTES", 30),
             cache_refresh_minutes=_int("CACHE_REFRESH_MINUTES", 60),
+            enforce_verification=_str("ENFORCE_VERIFICATION", "false").lower() == "true",
             ironforge_base=_str("IRONFORGE_BASE", "https://ironforge.pro"),
             current_season=_int("CURRENT_SEASON", 2),
             region=region,

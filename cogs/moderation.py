@@ -146,8 +146,12 @@ class Moderation(commands.Cog):
                 log.warning("Cannot kick expired guest %s", member)
 
         # Never-verified stragglers: no guest/friend/staff role, joined long enough ago.
-        cutoff = time.time() - settings.verify_timeout_hours * 3600
+        # Disabled by default — on a pre-existing server this would remove members who
+        # predate the bot. Only runs when ENFORCE_VERIFICATION=true.
         removed_stragglers = 0
+        if not settings.enforce_verification:
+            return removed_guests, removed_stragglers
+        cutoff = time.time() - settings.verify_timeout_hours * 3600
         access_ids = {guest_role_id} | protected
         for member in guild.members:
             if is_protected(member) or member.bot:
