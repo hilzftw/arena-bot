@@ -89,7 +89,11 @@ class Twitch(commands.Cog):
             ch = guild.get_channel(settings.twitch_channel_id)
             if isinstance(ch, discord.TextChannel):
                 return ch
-        return discord.utils.get(guild.text_channels, name="twitchy-p-clips")
+        for name in ("twitchy-p", "twitchy-p-clips"):
+            ch = discord.utils.get(guild.text_channels, name=name)
+            if ch:
+                return ch
+        return None
 
     async def _announce(self, login: str, stream: dict) -> None:
         channel = self._channel()

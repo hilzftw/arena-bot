@@ -172,7 +172,7 @@ class AdminSetup(commands.Cog):
             # 2. COMMUNITY — gated (includes casual Social / PvE).
             community = await self._category(guild, COMMUNITY, gated(include_casual=True))
             await self._text(guild, "general", community)
-            await self._text(guild, "twitchy-p-clips", community)
+            await self._text(guild, "twitchy-p", community)
             await self._text(guild, "music", community)
 
             # 3. ARENA — gated. Rename LFG channels (preserves IDs used by Railway).
@@ -180,7 +180,6 @@ class AdminSetup(commands.Cog):
             await self._rename_text(guild, "2v2-lfg", "2v2")
             await self._rename_text(guild, "3v3-lfg", "3v3")
             await self._rename_text(guild, "5v5-lfg", "5v5")
-            await self._text(guild, "arena", arena)   # new general arena text channel
             for nm in ("2v2", "3v3", "5v5"):
                 await self._text(guild, nm, arena)
 
