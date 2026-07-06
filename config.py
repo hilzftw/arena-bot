@@ -105,6 +105,10 @@ class Settings:
     twitch_channel_id: int
     twitch_poll_minutes: int
 
+    # WoW News module (feature-flagged)
+    news_enabled: bool
+    news_poll_minutes: int
+
     # Storage
     db_path: str
 
@@ -158,6 +162,8 @@ class Settings:
             ),
             twitch_channel_id=_int("TWITCH_CHANNEL_ID"),
             twitch_poll_minutes=_int("TWITCH_POLL_MINUTES", 3),
+            news_enabled=_str("NEWS_ENABLED", "true").lower() == "true",
+            news_poll_minutes=_int("NEWS_POLL_MINUTES", 20),
             db_path=_str("DB_PATH", "bot.db"),
         )
 
