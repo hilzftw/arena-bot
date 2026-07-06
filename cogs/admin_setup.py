@@ -40,17 +40,6 @@ DEAD_VOICE = {"pug q's", "2v", "3v", "5v", "arena"}
 DEAD_CATEGORIES = {"snoozin", "tbc arena"}
 DEAD_ROLES = {"bros", "rank 1"}
 
-WELCOME_BODY = (
-    "# ⚔️ NIGHTSLAYER ARENAS\n"
-    "A private TBC Anniversary Classic PvP hub — arena partners only.\n\n"
-    "**How it works**\n"
-    "1. Head to <#{verify}> and verify your character.\n"
-    "2. Receive your class, spec, faction, and rating roles automatically.\n"
-    "3. When I'm looking for partners I post an LFG in ⚔️ ARENA — click **Join Queue**.\n\n"
-    "Verification is required to unlock the server. Inactive guests are removed "
-    "automatically; regulars get promoted to **Friend** and stay forever."
-)
-
 RULES_BODY = (
     "# 📜 Rules\n"
     "Keep it simple:\n\n"
@@ -157,12 +146,9 @@ class AdminSetup(commands.Cog):
             return o
 
         try:
-            # 1. INFORMATION — public, but posting locked down.
+            # 1. INFORMATION — public, read-only. #welcome holds the intro + panel.
             info = await self._category(guild, INFO, {everyone: ow(view_channel=True)})
             await self._text(guild, "welcome", info, overwrites={
-                everyone: ow(view_channel=True, send_messages=False),
-                me: ow(view_channel=True, send_messages=True)})
-            verify = await self._text(guild, "verify", info, overwrites={
                 everyone: ow(view_channel=True, send_messages=False),
                 me: ow(view_channel=True, send_messages=True)})
             await self._text(guild, "rules", info, overwrites={
@@ -244,8 +230,8 @@ class AdminSetup(commands.Cog):
             # Native AFK.
             await self._setup_afk(guild)
 
-            # Content.
-            await self._seed(interaction.channel_id, guild, verify)
+            # Content + verify panel (in #welcome).
+            await self._seed(guild)
 
             # Cleanup (destructive).
             if confirm:
@@ -329,16 +315,24 @@ class AdminSetup(commands.Cog):
         await guild.edit(afk_channel=afk, afk_timeout=300)
         self._note("Set native AFK channel (5 min timeout)")
 
-    async def _seed(self, invoking_channel_id: int, guild: discord.Guild,
-                    verify: discord.TextChannel) -> None:
+    async def _seed(self, guild: discord.Guild) -> None:
+        from cogs.verification import VerifyPanel
         welcome = discord.utils.get(guild.text_channels, name="welcome")
         rules = discord.utils.get(guild.text_channels, name="rules")
         if welcome:
             async for _ in welcome.history(limit=1):
                 break
             else:
-                await welcome.send(WELCOME_BODY.format(verify=verify.id))
-                self._note("Posted #welcome content")
+                embed = discord.Embed(
+                    title="⚔️ NIGHTSLAYER ARENAS", color=COLOR_GOLD, description=(
+                        "A private TBC Classic PvP hub — arena partners only.\n\n"
+                        "Tap **Get Started** to pick your path:\n"
+                        "🎮 **WoW** → PvP (verify your character) or PvE\n"
+                        "😎 **Chill** → plain community access\n\n"
+                        "PvP players receive their rating/class/spec roles and can "
+                        "**Join Queue** on my LFG posts."))
+                await welcome.send(embed=embed, view=VerifyPanel())
+                self._note("Posted #welcome intro + verify panel")
         if rules:
             async for _ in rules.history(limit=1):
                 break
