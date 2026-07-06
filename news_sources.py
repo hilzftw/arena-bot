@@ -18,11 +18,14 @@ import feedparser
 
 log = logging.getLogger("news")
 
-# Source colours (spec): Blizzard blue, Wowhead orange, Icy Veins purple, Ironforge gray.
+# Wowhead exposes reliable RSS and aggregates Blizzard blue posts, patch notes, and
+# hotfixes; its general + Classic feeds cover everything we need. (Blizzard's and Icy
+# Veins' public RSS endpoints are dead as of writing.) Duplicates across the two feeds
+# are deduped by article id in the news cog.
 SOURCES: tuple[dict[str, Any], ...] = (
-    {"name": "Blizzard", "url": "https://news.blizzard.com/en-us/feed", "color": 0x00AEFF},
     {"name": "Wowhead", "url": "https://www.wowhead.com/news/rss/all", "color": 0xFF8000},
-    {"name": "Icy Veins", "url": "https://www.icy-veins.com/wow/feed/", "color": 0x8B5CF6},
+    {"name": "Wowhead Classic", "url": "https://www.wowhead.com/classic/news/rss/all",
+     "color": 0xFFB454},
 )
 
 _HEADERS = {"User-Agent": "NightslayerArenasBot/2.0 (+news)"}
