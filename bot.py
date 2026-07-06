@@ -31,7 +31,8 @@ logging.basicConfig(
 )
 log = logging.getLogger("bot")
 
-COGS = ["cogs.verification", "cogs.lfg", "cogs.moderation", "cogs.admin_setup"]
+COGS = ["cogs.verification", "cogs.lfg", "cogs.moderation", "cogs.admin_setup",
+        "cogs.wow", "cogs.health"]
 if settings.twitch_enabled:
     COGS.append("cogs.twitch")
 if settings.news_enabled:
@@ -57,6 +58,8 @@ class ArenaBot(commands.Bot):
             await self.load_extension(ext)
             log.info("Loaded %s", ext)
 
+        self.tree.on_error = self._on_app_error
+
         # Sync commands to the guild for instant availability.
         self.tree.copy_global_to(guild=self.guild_obj)
         synced = await self.tree.sync(guild=self.guild_obj)
@@ -66,6 +69,22 @@ class ArenaBot(commands.Bot):
 
     async def on_ready(self) -> None:
         log.info("Online as %s (%s)", self.user, self.user.id)
+
+    async def _on_app_error(self, interaction: discord.Interaction,
+                            error: discord.app_commands.AppCommandError) -> None:
+        import core
+        cmd = interaction.command.name if interaction.command else "?"
+        log.exception("App command error in /%s", cmd, exc_info=error)
+        await core.log_event(
+            interaction.guild, f"⚠️ Error in `/{cmd}`: {error}", 0xC41E3A)
+        msg = "⚠️ Something went wrong — logged to #bot-logs."
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(msg, ephemeral=True)
+            else:
+                await interaction.response.send_message(msg, ephemeral=True)
+        except discord.HTTPException:
+            pass
 
     async def close(self) -> None:
         # Graceful shutdown: release network + db handles.
