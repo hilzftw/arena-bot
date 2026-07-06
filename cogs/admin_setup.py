@@ -105,7 +105,38 @@ class AdminSetup(commands.Cog):
             await ch.edit(sync_permissions=True)
         return ch
 
-    # ── command ──────────────────────────────────────────────────────────────
+    # ── commands ─────────────────────────────────────────────────────────────
+    @app_commands.command(name="move-channel",
+                          description="[Owner] Move a channel into a category, keeping its permissions.")
+    @app_commands.describe(channel="Channel to move",
+                           category="Target category name, e.g. COMMUNITY")
+    async def move_channel(self, interaction: discord.Interaction,
+                           channel: discord.abc.GuildChannel, category: str) -> None:
+        guild = interaction.guild
+        if guild is None or interaction.user.id != guild.owner_id:
+            await interaction.response.send_message("❌ Server owner only.", ephemeral=True)
+            return
+        if isinstance(channel, discord.CategoryChannel):
+            await interaction.response.send_message("That's a category, not a channel.",
+                                                    ephemeral=True)
+            return
+        cat = self._find_category(guild, category)
+        if cat is None:
+            names = ", ".join(c.name for c in guild.categories)
+            await interaction.response.send_message(
+                f"❌ No category matching **{category}**. Have: {names}", ephemeral=True)
+            return
+        try:
+            # category= keeps the channel's own overwrites (no sync) → stays hidden if it was.
+            await channel.edit(category=cat)
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                "⚠️ Missing Manage Channels permission.", ephemeral=True)
+            return
+        await interaction.response.send_message(
+            f"✅ Moved {channel.mention} into **{cat.name}** (permissions preserved).",
+            ephemeral=True)
+
     @app_commands.command(name="setup-server",
                           description="[Owner] Build/repair the full server layout. Destructive.")
     @app_commands.describe(confirm="Must be True to run — deletes dead channels and roles.")
