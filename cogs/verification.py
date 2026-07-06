@@ -83,6 +83,28 @@ class VerifyModal(discord.ui.Modal, title="Verify your character"):
         await _do_verify(interaction, str(self.character_realm.value))
 
 
+async def _grant_access_role(interaction: discord.Interaction, role_name: str,
+                             success_msg: str) -> None:
+    """Grant a non-arena access role (Social / PvE) from the verify panel."""
+    role = discord.utils.get(interaction.guild.roles, name=role_name)
+    if role is None:
+        await interaction.response.send_message(
+            "That access isn't set up yet — ask an admin to run `/setup-server`.",
+            ephemeral=True)
+        return
+    if role in interaction.user.roles:
+        await interaction.response.send_message("You already have that access. ✅", ephemeral=True)
+        return
+    try:
+        await interaction.user.add_roles(role, reason=f"{role_name} (non-arena) access")
+    except discord.Forbidden:
+        await interaction.response.send_message(
+            f"⚠️ Couldn't assign the role — my role needs to sit above **{role_name}**.",
+            ephemeral=True)
+        return
+    await interaction.response.send_message(success_msg, ephemeral=True)
+
+
 class VerifyPanel(discord.ui.View):
     """Persistent panel — registered once via bot.add_view()."""
 
@@ -105,30 +127,21 @@ class VerifyPanel(discord.ui.View):
             return
         await interaction.followup.send(embed=profile_embed(interaction.user, data), ephemeral=True)
 
+    @discord.ui.button(label="PvE Player", emoji="🐉",
+                       style=discord.ButtonStyle.secondary, custom_id="ns:pve")
+    async def pve(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
+        await _grant_access_role(
+            interaction, "PvE",
+            "🐉 Welcome, PvE'er! You've got the community channels. The **arena** is "
+            "PvP-only — verify an arena character any time to unlock LFG.")
+
     @discord.ui.button(label="I don't PvP", emoji="👀",
                        style=discord.ButtonStyle.secondary, custom_id="ns:social")
     async def spectator(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
-        social = discord.utils.get(interaction.guild.roles, name="Social")
-        if social is None:
-            await interaction.response.send_message(
-                "Spectator access isn't set up yet — ask an admin to run `/setup-server`.",
-                ephemeral=True)
-            return
-        if social in interaction.user.roles:
-            await interaction.response.send_message(
-                "You already have spectator access. 👀", ephemeral=True)
-            return
-        try:
-            await interaction.user.add_roles(social, reason="Non-PvP / spectator access")
-        except discord.Forbidden:
-            await interaction.response.send_message(
-                "⚠️ Couldn't assign the role — my role needs to sit above **Social**.",
-                ephemeral=True)
-            return
-        await interaction.response.send_message(
+        await _grant_access_role(
+            interaction, "Social",
             "👀 Welcome! You've got access to the community channels. The **arena** stays "
-            "PvP-only — verify a character any time to unlock LFG and queue with us.",
-            ephemeral=True)
+            "PvP-only — verify a character any time to unlock LFG and queue with us.")
 
     @discord.ui.button(label="Help", emoji="❓",
                        style=discord.ButtonStyle.secondary, custom_id="ns:help")

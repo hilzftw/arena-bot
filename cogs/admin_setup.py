@@ -137,23 +137,17 @@ class AdminSetup(commands.Cog):
         bis = self._role(guild, "BIS")
         admin = self._role(guild, "admin", "Admin")
         mod = self._role(guild, "Moderator", "Mod")
-        social = self._role(guild, "Social")
-        if social is None:
-            try:
-                social = await guild.create_role(
-                    name="Social", colour=discord.Colour(0x95A5A6), hoist=True,
-                    reason="Non-PvP / spectator access")
-                self._note("Created role Social")
-            except discord.HTTPException:
-                social = None
+        social = await self._ensure_casual_role(guild, "Social", 0x95A5A6)
+        pve = await self._ensure_casual_role(guild, "PvE", 0x2ECC71)
 
-        def gated(include_social: bool = False) -> dict:
+        def gated(include_casual: bool = False) -> dict:
             """Hidden from @everyone, visible to verified/staff roles. Community and
-            voice include Social (non-PvP); the arena stays PvP-verified only."""
+            voice also include the casual Social/PvE roles; the arena stays
+            PvP-verified only."""
             o = {everyone: ow(view_channel=False), me: ow(view_channel=True)}
             roles = [guest, friend, bis, admin, mod]
-            if include_social:
-                roles.append(social)
+            if include_casual:
+                roles += [social, pve]
             for r in roles:
                 if r:
                     o[r] = ow(view_channel=True, connect=True)
@@ -172,8 +166,8 @@ class AdminSetup(commands.Cog):
                 everyone: ow(view_channel=True, send_messages=False),
                 me: ow(view_channel=True, send_messages=True)})
 
-            # 2. COMMUNITY — gated (includes Social / non-PvP).
-            community = await self._category(guild, COMMUNITY, gated(include_social=True))
+            # 2. COMMUNITY — gated (includes casual Social / PvE).
+            community = await self._category(guild, COMMUNITY, gated(include_casual=True))
             await self._text(guild, "general", community)
             await self._text(guild, "twitchy-p-clips", community)
             await self._text(guild, "music", community)
@@ -209,8 +203,8 @@ class AdminSetup(commands.Cog):
             bis_cat = await self._category(guild, BIS, bis_ovw)
             await self._text(guild, "bis-lounge", bis_cat)
 
-            # 6. VOICE — gated (includes Social); Mike P's restricted to owner + admin + BIS.
-            voice = await self._category(guild, VOICE, gated(include_social=True))
+            # 6. VOICE — gated (includes casual); Mike P's restricted to owner + admin + BIS.
+            voice = await self._category(guild, VOICE, gated(include_casual=True))
             await self._move_voice(guild, "gnome lives matter", voice, sync=True)
             mike = await self._move_voice(guild, "mike p's self play", voice, sync=False,
                                           rename="Mike P's Self Play Service")
@@ -282,10 +276,24 @@ class AdminSetup(commands.Cog):
         self._note(f"Configured voice {ch.name}")
         return ch
 
+    async def _ensure_casual_role(self, guild: discord.Guild, name: str,
+                                  colour: int) -> Optional[discord.Role]:
+        """Find or create a casual (non-arena) access role like Social / PvE."""
+        role = self._role(guild, name)
+        if role is None:
+            try:
+                role = await guild.create_role(
+                    name=name, colour=discord.Colour(colour), hoist=True,
+                    reason="Non-arena / casual access")
+                self._note(f"Created role {name}")
+            except discord.HTTPException:
+                role = None
+        return role
+
     async def _hoist_roles(self, guild: discord.Guild) -> None:
         """Show structural roles as separate groups in the member list; keep the
         cosmetic rating/class/spec roles out of that grouping."""
-        hoist = {"admin", "moderator", "bis", "friend", "guest", "social"}
+        hoist = {"admin", "moderator", "bis", "friend", "guest", "social", "pve"}
         flat = {"unranked", "1400+", "1800+", "2100+", "gladiator", "merciless gladiator"}
         for role in guild.roles:
             nm = role.name.lower()
