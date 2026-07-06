@@ -105,16 +105,58 @@ async def _grant_access_role(interaction: discord.Interaction, role_name: str,
     await interaction.response.send_message(success_msg, ephemeral=True)
 
 
+class PvPvEView(discord.ui.View):
+    """Step 2 (WoW branch): PvP → character verify, PvE → PvE role."""
+
+    def __init__(self) -> None:
+        super().__init__(timeout=180)
+
+    @discord.ui.button(label="PvP", emoji="⚔️", style=discord.ButtonStyle.danger)
+    async def pvp(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
+        await interaction.response.send_modal(VerifyModal())
+
+    @discord.ui.button(label="PvE", emoji="🛡️", style=discord.ButtonStyle.primary)
+    async def pve(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
+        await _grant_access_role(
+            interaction, "PvE",
+            "🛡️ Welcome, PvE'er! Community channels and PvE news are unlocked. The "
+            "**arena** stays PvP-only — verify a character anytime to unlock LFG.")
+
+
+class WoWChillView(discord.ui.View):
+    """Step 1: WoW → PvP/PvE choice, Chill → Social (regular) access."""
+
+    def __init__(self) -> None:
+        super().__init__(timeout=180)
+
+    @discord.ui.button(label="WoW", emoji="🎮", style=discord.ButtonStyle.success)
+    async def wow(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
+        await interaction.response.edit_message(
+            content="Nice — **PvP** or **PvE**?\n"
+                    "⚔️ PvP verifies your arena character and unlocks LFG.\n"
+                    "🛡️ PvE gives you community + PvE news access.",
+            view=PvPvEView())
+
+    @discord.ui.button(label="Chill", emoji="😎", style=discord.ButtonStyle.secondary)
+    async def chill(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
+        await _grant_access_role(
+            interaction, "Social",
+            "😎 You're in — community channels unlocked, no WoW required. Hit "
+            "**Get Started → WoW** anytime you want to play.")
+
+
 class VerifyPanel(discord.ui.View):
     """Persistent panel — registered once via bot.add_view()."""
 
     def __init__(self) -> None:
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Verify Character", emoji="✅",
-                       style=discord.ButtonStyle.green, custom_id="ns:verify")
-    async def verify(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
-        await interaction.response.send_modal(VerifyModal())
+    @discord.ui.button(label="Get Started", emoji="🎮",
+                       style=discord.ButtonStyle.green, custom_id="ns:start")
+    async def start(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
+        await interaction.response.send_message(
+            "Welcome to **Nightslayer Arenas** 👋\nAre you here for **WoW**, or just to **chill**?",
+            view=WoWChillView(), ephemeral=True)
 
     @discord.ui.button(label="My Profile", emoji="👤",
                        style=discord.ButtonStyle.secondary, custom_id="ns:profile")
@@ -123,25 +165,10 @@ class VerifyPanel(discord.ui.View):
         data = await db.get_user(str(interaction.user.id))
         if not data:
             await interaction.followup.send(
-                "You haven't verified yet — click **Verify Character**.", ephemeral=True)
+                "You haven't verified a character yet — click **Get Started → WoW → PvP**.",
+                ephemeral=True)
             return
         await interaction.followup.send(embed=profile_embed(interaction.user, data), ephemeral=True)
-
-    @discord.ui.button(label="PvE Player", emoji="🐉",
-                       style=discord.ButtonStyle.secondary, custom_id="ns:pve")
-    async def pve(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
-        await _grant_access_role(
-            interaction, "PvE",
-            "🐉 Welcome, PvE'er! You've got the community channels. The **arena** is "
-            "PvP-only — verify an arena character any time to unlock LFG.")
-
-    @discord.ui.button(label="I don't PvP", emoji="👀",
-                       style=discord.ButtonStyle.secondary, custom_id="ns:social")
-    async def spectator(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
-        await _grant_access_role(
-            interaction, "Social",
-            "👀 Welcome! You've got access to the community channels. The **arena** stays "
-            "PvP-only — verify a character any time to unlock LFG and queue with us.")
 
     @discord.ui.button(label="Help", emoji="❓",
                        style=discord.ButtonStyle.secondary, custom_id="ns:help")
@@ -149,11 +176,13 @@ class VerifyPanel(discord.ui.View):
         embed = discord.Embed(
             title="How Nightslayer Arenas works", color=COLOR_GOLD,
             description=(
-                "**1.** Click **Verify Character** and enter `Name-Realm`.\n"
-                "**2.** Receive your PvP roles automatically.\n"
-                "**3.** When I post an LFG, click **Join Queue** — I'll DM us both.\n\n"
-                "Guests are removed after a period of inactivity. Regulars get "
-                "promoted to **Friend** and never expire."),
+                "**1.** Click **Get Started**.\n"
+                "**2.** Pick **WoW** (then **PvP** to verify your character, or **PvE**) "
+                "or **Chill** for plain community access.\n"
+                "**3.** PvP players receive their rating/class/spec roles and can click "
+                "**Join Queue** on my LFG posts — I'll DM us both.\n\n"
+                "Guests are removed after a period of inactivity; regulars get promoted "
+                "to **Friend** and never expire."),
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
