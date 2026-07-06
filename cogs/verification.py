@@ -169,6 +169,11 @@ def profile_embed(user: discord.abc.User, data: dict) -> discord.Embed:
     embed.add_field(name="Class", value=data.get("class") or "—", inline=True)
     embed.add_field(name="Spec", value=data.get("spec") or "—", inline=True)
     embed.add_field(name="Status", value="Friend (permanent)" if is_friend else "Guest", inline=True)
+    if data.get("verified_at"):
+        embed.add_field(name="Verified", value=f"<t:{data['verified_at']}:D>", inline=True)
+    src = {"ironforge": "Ironforge.pro", "blizzard_fallback": "Blizzard API"}.get(
+        data.get("source"), data.get("source") or "—")
+    embed.add_field(name="Source", value=src, inline=True)
     return embed
 
 

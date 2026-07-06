@@ -27,9 +27,12 @@ log = logging.getLogger("setup")
 INFO = "📌 INFORMATION"
 COMMUNITY = "💬 COMMUNITY"
 ARENA = "⚔️ ARENA"
+NEWS = "📰 NEWS"
 ADMIN = "🔒 ADMIN"
 BIS = "⭐ BIS"
 VOICE = "🔊 VOICE"
+
+NEWS_CHANNELS = ("tbc-pvp-news", "tbc-pve-news", "retail-wow-news")
 
 # Channels to delete outright (lowercased names). "arena" handled separately by type.
 DEAD_TEXT = {"fuck-12", "announcements", "5v5-push"}
@@ -181,6 +184,16 @@ class AdminSetup(commands.Cog):
             for nm in ("2v2", "3v3", "5v5"):
                 await self._text(guild, nm, arena)
 
+            # 3b. NEWS — gated + read-only; only the bot posts.
+            news = await self._category(guild, NEWS, gated(include_casual=True))
+            news_ovw = gated(include_casual=True)
+            for role, o in news_ovw.items():
+                if role != me:
+                    o.update(send_messages=False)
+            news_ovw[me] = ow(view_channel=True, send_messages=True)
+            for nm in NEWS_CHANNELS:
+                await self._text(guild, nm, news, overwrites=news_ovw)
+
             # 4. ADMIN — hidden to all but staff. bot-logs is bot-write-only.
             staff_ovw = {everyone: ow(view_channel=False), me: ow(view_channel=True)}
             for r in (admin, mod):
@@ -220,7 +233,7 @@ class AdminSetup(commands.Cog):
                 await mike.edit(overwrites=mvw)
 
             # Ordering.
-            for i, cat in enumerate((info, community, arena, adm, bis_cat, voice)):
+            for i, cat in enumerate((info, community, arena, news, adm, bis_cat, voice)):
                 try:
                     await cat.edit(position=i)
                 except discord.HTTPException:

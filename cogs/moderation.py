@@ -80,7 +80,7 @@ class Moderation(commands.Cog):
     @staff_only()
     async def blacklist_add(self, interaction: discord.Interaction,
                             member: discord.Member, reason: Optional[str] = None) -> None:
-        await db.add_blacklist(str(member.id), reason)
+        await db.add_blacklist(str(member.id), reason, str(interaction.user))
         await db.delete_user(str(member.id))
         try:
             await member.ban(reason=f"Blacklisted by {interaction.user}: {reason or 'n/a'}",
@@ -107,6 +107,50 @@ class Moderation(commands.Cog):
             pass
         await interaction.response.send_message(
             f"✅ Removed `{user_id}` from the blacklist.", ephemeral=True)
+
+    @blacklist.command(name="list", description="Show all blacklisted users.")
+    @staff_only()
+    async def blacklist_list(self, interaction: discord.Interaction) -> None:
+        rows = await db.list_blacklist()
+        if not rows:
+            await interaction.response.send_message("Blacklist is empty. ✅", ephemeral=True)
+            return
+        lines = []
+        for r in rows[:25]:
+            when = f"<t:{r['added_at']}:d>" if r.get("added_at") else "?"
+            who = r.get("added_by") or "?"
+            lines.append(f"• `{r['discord_id']}` — {r.get('reason') or 'no reason'} "
+                         f"(by {who}, {when})")
+        embed = discord.Embed(title=f"⛔ Blacklist ({len(rows)})",
+                              description="\n".join(lines), color=COLOR_RED)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # ── bis ──────────────────────────────────────────────────────────────────────
+    bis = app_commands.Group(name="bis", description="Manage BIS (trusted partner) role.")
+
+    @bis.command(name="add", description="Grant a member the BIS role.")
+    @staff_only()
+    async def bis_add(self, interaction: discord.Interaction, member: discord.Member) -> None:
+        role = discord.utils.get(interaction.guild.roles, name="BIS")
+        if role is None:
+            await interaction.response.send_message(
+                "No **BIS** role — run `/setup-server` first.", ephemeral=True)
+            return
+        await member.add_roles(role, reason=f"BIS by {interaction.user}")
+        await core.log_event(interaction.guild,
+                             f"⭐ {member.mention} granted **BIS** by {interaction.user.mention}",
+                             COLOR_GREEN)
+        await interaction.response.send_message(
+            f"✅ {member.mention} is now **BIS** — access to #bis-lounge unlocked.", ephemeral=True)
+
+    @bis.command(name="remove", description="Remove the BIS role from a member.")
+    @staff_only()
+    async def bis_remove(self, interaction: discord.Interaction, member: discord.Member) -> None:
+        role = discord.utils.get(interaction.guild.roles, name="BIS")
+        if role and role in member.roles:
+            await member.remove_roles(role, reason=f"BIS removed by {interaction.user}")
+        await interaction.response.send_message(
+            f"✅ Removed **BIS** from {member.mention}.", ephemeral=True)
 
     # ── whois ────────────────────────────────────────────────────────────────────
     @app_commands.command(name="whois", description="Show a member's verified character.")

@@ -81,13 +81,36 @@ async def init_db() -> None:
         CREATE TABLE IF NOT EXISTS blacklist (
             discord_id  TEXT PRIMARY KEY,
             reason      TEXT,
+            added_by    TEXT,
             added_at    INTEGER NOT NULL
+        );
+
+        -- Dedup for the news module: one row per posted article.
+        CREATE TABLE IF NOT EXISTS news_articles (
+            guid        TEXT PRIMARY KEY,      -- stable id/link from the feed
+            category    TEXT NOT NULL,         -- tbc-pvp | tbc-pve | retail
+            title       TEXT,
+            url         TEXT,
+            source      TEXT,
+            posted_at   INTEGER NOT NULL
+        );
+
+        -- Feature flags + small key/value settings, toggleable without a redeploy.
+        CREATE TABLE IF NOT EXISTS bot_settings (
+            key         TEXT PRIMARY KEY,
+            value       TEXT
         );
 
         CREATE INDEX IF NOT EXISTS idx_lfg_active   ON active_lfg(active, bracket);
         CREATE INDEX IF NOT EXISTS idx_users_expiry ON users(expires_at);
+        CREATE INDEX IF NOT EXISTS idx_news_cat     ON news_articles(category, posted_at);
         """
     )
+    # Backfill added_by for pre-existing blacklist rows (older schema).
+    try:
+        await conn.execute("ALTER TABLE blacklist ADD COLUMN added_by TEXT")
+    except Exception:
+        pass
     await conn.commit()
 
 
@@ -229,12 +252,13 @@ async def take_expired_lfg(now: Optional[int] = None) -> list[dict[str, Any]]:
 
 # ── blacklist ──────────────────────────────────────────────────────────────────
 
-async def add_blacklist(discord_id: str, reason: Optional[str]) -> None:
+async def add_blacklist(discord_id: str, reason: Optional[str],
+                        added_by: Optional[str] = None) -> None:
     conn = await connect()
     await conn.execute(
-        "INSERT INTO blacklist (discord_id, reason, added_at) VALUES (?, ?, ?) "
-        "ON CONFLICT(discord_id) DO UPDATE SET reason=excluded.reason",
-        (discord_id, reason, int(time.time())),
+        "INSERT INTO blacklist (discord_id, reason, added_by, added_at) VALUES (?, ?, ?, ?) "
+        "ON CONFLICT(discord_id) DO UPDATE SET reason=excluded.reason, added_by=excluded.added_by",
+        (discord_id, reason, added_by, int(time.time())),
     )
     await conn.commit()
 
@@ -251,3 +275,57 @@ async def is_blacklisted(discord_id: str) -> bool:
         "SELECT 1 FROM blacklist WHERE discord_id=?", (discord_id,)
     ) as cur:
         return await cur.fetchone() is not None
+
+
+async def list_blacklist() -> list[dict[str, Any]]:
+    conn = await connect()
+    async with conn.execute(
+        "SELECT * FROM blacklist ORDER BY added_at DESC"
+    ) as cur:
+        return [dict(r) for r in await cur.fetchall()]
+
+
+# ── news dedup ───────────────────────────────────────────────────────────────
+
+async def news_seen(guid: str) -> bool:
+    conn = await connect()
+    async with conn.execute("SELECT 1 FROM news_articles WHERE guid=?", (guid,)) as cur:
+        return await cur.fetchone() is not None
+
+
+async def mark_news_posted(guid: str, category: str, title: str,
+                           url: str, source: str) -> None:
+    conn = await connect()
+    await conn.execute(
+        "INSERT OR IGNORE INTO news_articles (guid, category, title, url, source, posted_at) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (guid, category, title, url, source, int(time.time())),
+    )
+    await conn.commit()
+
+
+async def news_stats() -> dict[str, int]:
+    conn = await connect()
+    async with conn.execute(
+        "SELECT category, COUNT(*) AS n FROM news_articles GROUP BY category"
+    ) as cur:
+        return {r["category"]: r["n"] for r in await cur.fetchall()}
+
+
+# ── bot_settings (feature flags) ─────────────────────────────────────────────
+
+async def get_setting(key: str, default: Optional[str] = None) -> Optional[str]:
+    conn = await connect()
+    async with conn.execute("SELECT value FROM bot_settings WHERE key=?", (key,)) as cur:
+        row = await cur.fetchone()
+        return row["value"] if row else default
+
+
+async def set_setting(key: str, value: str) -> None:
+    conn = await connect()
+    await conn.execute(
+        "INSERT INTO bot_settings (key, value) VALUES (?, ?) "
+        "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (key, value),
+    )
+    await conn.commit()

@@ -4,7 +4,7 @@ Looking For Group.
 /lfg posts a clean card in the bracket channel. Everything but the bracket and an
 optional rating preference is pulled from the poster's verify record. Interested
 players click Join Queue (a persistent DynamicItem button keyed by entry id, so it
-survives restarts) and the bot DMs both players to connect.
+survives restarts) and the bot DMs both players so they can team up in voice.
 """
 from __future__ import annotations
 
@@ -152,11 +152,15 @@ class LFG(commands.Cog):
             await interaction.followup.send("❌ Verify first before using LFG.", ephemeral=True)
             return
 
+        # Resolve by configured ID, then fall back to a channel named after the
+        # bracket (e.g. "2v2") so a server reorg can't break /lfg.
         channel = interaction.guild.get_channel(settings.lfg_channel_ids.get(bracket.value, 0))
         if channel is None:
+            channel = discord.utils.get(interaction.guild.text_channels, name=bracket.value)
+        if channel is None:
             await interaction.followup.send(
-                f"❌ No channel configured for {bracket.value}. "
-                "Set CHANNEL_{}_ID.".format(bracket.value.upper()), ephemeral=True)
+                f"❌ No `#{bracket.value}` channel found. Run `/setup-server` or set "
+                f"`CHANNEL_{bracket.value.upper()}_ID`.", ephemeral=True)
             return
 
         pref = (pref_min, pref_max) if pref_min is not None and pref_max is not None else None
