@@ -18,7 +18,19 @@ IGNORE = (
     "best professions", "transmog", "mount guide", "gold guide", "addon guide",
 )
 
-CLASSIC = ("classic", "burning crusade", "tbc", "anniversary")
+# Note: bare "anniversary" is intentionally excluded — the WoW 20th Anniversary is a
+# *retail* event, so it would misroute retail news into the Classic channels.
+CLASSIC = ("classic", "burning crusade", "tbc", "anniversary classic", "classic era",
+           "hardcore")
+
+# Strong RETAIL markers. If any appear, the article is retail — this overrides a stray
+# "classic" mention so retail news never lands in a TBC channel.
+RETAIL = (
+    "the war within", "war within", "midnight", "the last titan", "dragonflight",
+    "shadowlands", "delve", "mythic+", "mythic plus", "great vault", "warband",
+    "hero talent", "worldsoul", "retail wow", "modern wow", "20th anniversary",
+    "anniversary event", "season of discovery",
+)
 
 PVP = (
     "arena", "pvp", "honor", "battleground", " bg ", "rated", "mmr", "rating",
@@ -56,6 +68,10 @@ def classify(title: str, summary: str = "") -> Optional[str]:
     if _has(text, IGNORE):
         return None
 
+    # Strong retail markers win first — keeps retail out of the TBC channels.
+    if _has(text, RETAIL):
+        return "retail"
+
     if _has(text, CLASSIC):
         if _has(text, PVP):
             return "tbc-pvp"
@@ -65,7 +81,7 @@ def classify(title: str, summary: str = "") -> Optional[str]:
             return "tbc-pvp"        # PvP-first default for general Classic news
         return None
 
-    # Not Classic → only surface major retail news.
+    # Not clearly Classic → only surface genuinely major retail news.
     if _has(text, RETAIL_MAJOR):
         return "retail"
     return None
