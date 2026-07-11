@@ -86,6 +86,19 @@ async def init_db() -> None:
             posted_at   INTEGER NOT NULL
         );
 
+        -- Dedup for the Twitch clip feed: one row per clip posted to Discord.
+        -- Grain: one row per Twitch clip id (stable, assigned by Twitch).
+        CREATE TABLE IF NOT EXISTS twitch_clips (
+            clip_id     TEXT PRIMARY KEY,      -- Twitch clip id
+            broadcaster TEXT NOT NULL,         -- login of the streamer clipped
+            creator     TEXT,                  -- who made the clip
+            title       TEXT,
+            url         TEXT,
+            view_count  INTEGER NOT NULL DEFAULT 0,
+            created_at  TEXT,                  -- ISO8601 from Twitch
+            posted_at   INTEGER NOT NULL       -- unix ts we posted it
+        );
+
         -- Feature flags + small key/value settings, toggleable without a redeploy.
         CREATE TABLE IF NOT EXISTS bot_settings (
             key         TEXT PRIMARY KEY,
@@ -94,6 +107,7 @@ async def init_db() -> None:
 
         CREATE INDEX IF NOT EXISTS idx_users_expiry ON users(expires_at);
         CREATE INDEX IF NOT EXISTS idx_news_cat     ON news_articles(category, posted_at);
+        CREATE INDEX IF NOT EXISTS idx_clips_caster ON twitch_clips(broadcaster, posted_at);
         """
     )
     # Backfill added_by for pre-existing blacklist rows (older schema).
@@ -243,6 +257,38 @@ async def news_stats() -> dict[str, int]:
         "SELECT category, COUNT(*) AS n FROM news_articles GROUP BY category"
     ) as cur:
         return {r["category"]: r["n"] for r in await cur.fetchall()}
+
+
+# ── twitch_clips ─────────────────────────────────────────────────────────────
+
+async def clip_seen(clip_id: str) -> bool:
+    conn = await connect()
+    async with conn.execute(
+        "SELECT 1 FROM twitch_clips WHERE clip_id=?", (clip_id,)
+    ) as cur:
+        return await cur.fetchone() is not None
+
+
+async def mark_clip_posted(clip_id: str, broadcaster: str, creator: str, title: str,
+                           url: str, view_count: int, created_at: str) -> None:
+    conn = await connect()
+    await conn.execute(
+        "INSERT OR IGNORE INTO twitch_clips "
+        "(clip_id, broadcaster, creator, title, url, view_count, created_at, posted_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (clip_id, broadcaster, creator, title, url, view_count, created_at,
+         int(time.time())),
+    )
+    await conn.commit()
+
+
+async def clip_stats() -> dict[str, int]:
+    """Clips posted, per broadcaster."""
+    conn = await connect()
+    async with conn.execute(
+        "SELECT broadcaster, COUNT(*) AS n FROM twitch_clips GROUP BY broadcaster"
+    ) as cur:
+        return {r["broadcaster"]: r["n"] for r in await cur.fetchall()}
 
 
 # ── bot_settings (feature flags) ─────────────────────────────────────────────

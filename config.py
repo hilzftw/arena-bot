@@ -104,6 +104,16 @@ class Settings:
     twitch_channel_id: int
     twitch_poll_minutes: int
 
+    # Twitch clips → Discord. Polls the public Helix clips endpoint for every login
+    # in twitch_streamers and posts new clips. Uses the same app access token as the
+    # go-live poller — needs no broadcaster authorization, so a moderator can run it.
+    clips_enabled: bool
+    clips_channel_id: int          # 0 = fall back to the go-live channel
+    clips_poll_minutes: int
+    clips_lookback_minutes: int    # how far back to ask Twitch for clips each poll
+    clips_max_per_run: int         # flood guard, same idea as the news feed
+    clips_min_views: int           # 0 = post every clip
+
     # WoW News module (feature-flagged)
     news_enabled: bool
     news_poll_minutes: int
@@ -169,6 +179,12 @@ class Settings:
             ),
             twitch_channel_id=_int("TWITCH_CHANNEL_ID"),
             twitch_poll_minutes=_int("TWITCH_POLL_MINUTES", 3),
+            clips_enabled=_str("CLIPS_ENABLED", "true").lower() == "true",
+            clips_channel_id=_int("CLIPS_CHANNEL_ID"),
+            clips_poll_minutes=_int("CLIPS_POLL_MINUTES", 10),
+            clips_lookback_minutes=_int("CLIPS_LOOKBACK_MINUTES", 120),
+            clips_max_per_run=_int("CLIPS_MAX_PER_RUN", 5),
+            clips_min_views=_int("CLIPS_MIN_VIEWS", 0),
             news_enabled=_str("NEWS_ENABLED", "true").lower() == "true",
             news_poll_minutes=_int("NEWS_POLL_MINUTES", 20),
             news_channel_id=_int("NEWS_CHANNEL_ID"),
