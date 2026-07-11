@@ -5,9 +5,10 @@ One shared aiosqlite connection (WAL mode) for the whole process — this bot is
 single-guild personal tool, so a connection pool is unnecessary overhead.
 
 Tables
-    users        one row per verified member (guest expiry lives here as expires_at)
-    active_lfg   open LFG cards; custom_id survives restarts for persistent buttons
-    blacklist    banned discord ids
+    users          one row per verified member (guest expiry lives here as expires_at)
+    blacklist      banned discord ids
+    news_articles  dedup for the news feed — one row per posted article
+    bot_settings   feature flags + small key/value settings (no redeploy needed)
 
 Guest vs Friend is expressed purely by expires_at:
     expires_at IS NULL  -> Friend (never expires)
@@ -64,19 +65,9 @@ async def init_db() -> None:
             expires_at  INTEGER            -- NULL = Friend / permanent
         );
 
-        CREATE TABLE IF NOT EXISTS active_lfg (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            discord_id  TEXT NOT NULL,
-            bracket     TEXT NOT NULL,
-            rating      INTEGER NOT NULL DEFAULT 0,
-            pref_min    INTEGER,
-            pref_max    INTEGER,
-            message_id  TEXT,
-            channel_id  TEXT,
-            created_at  INTEGER NOT NULL,
-            expires_at  INTEGER NOT NULL,
-            active      INTEGER NOT NULL DEFAULT 1
-        );
+        -- NOTE: the active_lfg table is intentionally no longer created. The LFG
+        -- feature was removed with the 2v2/3v3/5v5 channels. Existing databases keep
+        -- their table (we don't drop it — no destructive migrations), it's just unused.
 
         CREATE TABLE IF NOT EXISTS blacklist (
             discord_id  TEXT PRIMARY KEY,
@@ -101,7 +92,6 @@ async def init_db() -> None:
             value       TEXT
         );
 
-        CREATE INDEX IF NOT EXISTS idx_lfg_active   ON active_lfg(active, bracket);
         CREATE INDEX IF NOT EXISTS idx_users_expiry ON users(expires_at);
         CREATE INDEX IF NOT EXISTS idx_news_cat     ON news_articles(category, posted_at);
         """
@@ -188,66 +178,9 @@ async def get_expired_guests(now: Optional[int] = None) -> list[dict[str, Any]]:
 
 
 # ── active_lfg ─────────────────────────────────────────────────────────────────
-
-async def add_lfg(
-    discord_id: str,
-    bracket: str,
-    rating: int,
-    pref_min: Optional[int],
-    pref_max: Optional[int],
-    message_id: str,
-    channel_id: str,
-    expiry_minutes: int,
-) -> int:
-    now = int(time.time())
-    conn = await connect()
-    # One active card per user per bracket — retire older ones.
-    await conn.execute(
-        "UPDATE active_lfg SET active=0 WHERE discord_id=? AND bracket=? AND active=1",
-        (discord_id, bracket),
-    )
-    cur = await conn.execute(
-        """
-        INSERT INTO active_lfg
-            (discord_id, bracket, rating, pref_min, pref_max,
-             message_id, channel_id, created_at, expires_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (discord_id, bracket, rating, pref_min, pref_max,
-         message_id, channel_id, now, now + expiry_minutes * 60),
-    )
-    await conn.commit()
-    return cur.lastrowid
-
-
-async def get_lfg(entry_id: int) -> Optional[dict[str, Any]]:
-    conn = await connect()
-    async with conn.execute("SELECT * FROM active_lfg WHERE id=?", (entry_id,)) as cur:
-        row = await cur.fetchone()
-        return dict(row) if row else None
-
-
-async def deactivate_lfg(entry_id: int) -> None:
-    conn = await connect()
-    await conn.execute("UPDATE active_lfg SET active=0 WHERE id=?", (entry_id,))
-    await conn.commit()
-
-
-async def take_expired_lfg(now: Optional[int] = None) -> list[dict[str, Any]]:
-    """Return + retire all active cards past expiry (idempotent)."""
-    now = now or int(time.time())
-    conn = await connect()
-    async with conn.execute(
-        "SELECT * FROM active_lfg WHERE active=1 AND expires_at <= ?", (now,)
-    ) as cur:
-        expired = [dict(r) for r in await cur.fetchall()]
-    if expired:
-        ids = [e["id"] for e in expired]
-        await conn.execute(
-            f"UPDATE active_lfg SET active=0 WHERE id IN ({','.join('?' * len(ids))})", ids
-        )
-        await conn.commit()
-    return expired
+# Removed with the LFG feature (add_lfg / get_lfg / deactivate_lfg /
+# take_expired_lfg). The table is left in place on existing databases but is
+# no longer read or written.
 
 
 # ── blacklist ──────────────────────────────────────────────────────────────────

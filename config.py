@@ -40,12 +40,10 @@ RATING_ROLE_KEYS = (
     "Merciless Gladiator",
 )
 
-# Healer specs → used to tag a role preference on LFG cards.
-HEALER_SPECS = frozenset({"Holy", "Discipline", "Restoration"})
-
+# Ladder brackets — used by ironforge.py for rating lookups during /verify.
+# (Not LFG: the LFG feature was removed along with the 2v2/3v3/5v5 channels.)
 BRACKETS = (2, 3, 5)
 BRACKET_NAMES = {2: "2v2", 3: "3v3", 5: "5v5"}
-BRACKET_SIZE = {"2v2": 2, "3v3": 3, "5v5": 5}
 
 # WoW-flavored embed colors.
 COLOR_GOLD = 0xC79C6E      # warrior tan / neutral header
@@ -73,7 +71,6 @@ class Settings:
 
     # Channels
     verify_channel_id: int
-    lfg_channel_ids: dict[str, int]        # "2v2" -> channel id
     voice_category_id: int
     # 0 = fall back to a channel named "welcome" / "rules".
     welcome_channel_id: int
@@ -85,7 +82,6 @@ class Settings:
     # Behavior
     guest_expiration_days: int
     verify_timeout_hours: int
-    queue_expiry_minutes: int
     cache_refresh_minutes: int
     # When False (default), the bot NEVER kicks members who simply never verified.
     # Only turn this on after the verify gate is established, or it will remove
@@ -143,11 +139,6 @@ class Settings:
             "Gladiator": _int("ROLE_GLADIATOR_ID"),
             "Merciless Gladiator": _int("ROLE_MERCILESS_ID"),
         }
-        lfg_channel_ids = {
-            "2v2": _int("CHANNEL_2V2_ID"),
-            "3v3": _int("CHANNEL_3V3_ID"),
-            "5v5": _int("CHANNEL_5V5_ID"),
-        }
         return cls(
             token=_str("DISCORD_TOKEN"),
             guild_id=_int("GUILD_ID", required=True),
@@ -158,14 +149,12 @@ class Settings:
             admin_role_id=_int("ADMIN_ROLE_ID"),
             rating_role_ids=rating_role_ids,
             verify_channel_id=_int("VERIFY_CHANNEL_ID"),
-            lfg_channel_ids=lfg_channel_ids,
             voice_category_id=_int("VOICE_CATEGORY_ID"),
             welcome_channel_id=_int("WELCOME_CHANNEL_ID"),
             rules_channel_id=_int("RULES_CHANNEL_ID"),
             manage_class_spec_roles=_str("MANAGE_CLASS_SPEC_ROLES", "true").lower() == "true",
             guest_expiration_days=_int("GUEST_EXPIRATION_DAYS", 30),
             verify_timeout_hours=_int("VERIFY_TIMEOUT_HOURS", 24),
-            queue_expiry_minutes=_int("QUEUE_EXPIRY_MINUTES", 30),
             cache_refresh_minutes=_int("CACHE_REFRESH_MINUTES", 60),
             enforce_verification=_str("ENFORCE_VERIFICATION", "false").lower() == "true",
             ironforge_base=_str("IRONFORGE_BASE", "https://ironforge.pro"),
@@ -198,11 +187,6 @@ class Settings:
             raise RuntimeError("DISCORD_TOKEN not set")
         if not self.guild_id:
             raise RuntimeError("GUILD_ID not set")
-
-
-def spec_role_kind(spec: str) -> str:
-    """LFG tag: 'healer' or 'dps'."""
-    return "healer" if spec in HEALER_SPECS else "dps"
 
 
 # Single shared instance imported across modules.

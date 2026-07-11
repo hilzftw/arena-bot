@@ -56,11 +56,9 @@ WELCOME_TITLE = "⚔️ NIGHTSLAYER ARENAS"
 WELCOME_BODY = (
     "A private **TBC Classic** PvP hub — arena partners only.\n\n"
     "Tap **Get Started** below and pick your path:\n"
-    "🎮 **WoW** → **⚔️ PvP** (verify your character, unlock LFG) "
-    "or **🛡️ PvE**\n"
+    "🎮 **WoW** → **⚔️ PvP** (verify your character) or **🛡️ PvE**\n"
     "😎 **Chill** → community access, no WoW required\n\n"
-    "Verified PvP players get their rating, class and spec roles automatically, "
-    "and can **Join Queue** on any LFG post."
+    "Verified PvP players get their rating, class and spec roles automatically."
 )
 
 
@@ -292,13 +290,9 @@ class AdminSetup(commands.Cog):
             await self._text(guild, "twitchy-p", community)
             await self._text(guild, "music", community)
 
-            # 3. ARENA — gated. Rename LFG channels (preserves IDs used by Railway).
-            arena = await self._category(guild, ARENA, gated())
-            await self._rename_text(guild, "2v2-lfg", "2v2")
-            await self._rename_text(guild, "3v3-lfg", "3v3")
-            await self._rename_text(guild, "5v5-lfg", "5v5")
-            for nm in ("2v2", "3v3", "5v5"):
-                await self._text(guild, nm, arena)
+            # 3. ARENA — gated. Voice only; the per-bracket LFG text channels were
+            # removed with the LFG feature, so nothing is created here.
+            await self._category(guild, ARENA, gated())
 
             # 3b. NEWS — gated + read-only; only the bot posts.
             news = await self._category(guild, NEWS, gated(include_casual=True))

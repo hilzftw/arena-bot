@@ -120,7 +120,7 @@ class PvPvEView(discord.ui.View):
         await _grant_access_role(
             interaction, "PvE",
             "🛡️ Welcome, PvE'er! Community channels and the TBC news feed are unlocked. "
-            "The **arena** stays PvP-only — verify a character anytime to unlock LFG.")
+            "The **arena** stays PvP-only — verify a character anytime to join it.")
 
 
 class WoWChillView(discord.ui.View):
@@ -133,7 +133,7 @@ class WoWChillView(discord.ui.View):
     async def wow(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
         await interaction.response.edit_message(
             content="Nice — **PvP** or **PvE**?\n"
-                    "⚔️ PvP verifies your arena character and unlocks LFG.\n"
+                    "⚔️ PvP verifies your arena character and unlocks the arena.\n"
                     "🛡️ PvE gives you community + PvE news access.",
             view=PvPvEView())
 
@@ -179,8 +179,8 @@ class VerifyPanel(discord.ui.View):
                 "**1.** Click **Get Started**.\n"
                 "**2.** Pick **WoW** (then **PvP** to verify your character, or **PvE**) "
                 "or **Chill** for plain community access.\n"
-                "**3.** PvP players receive their rating/class/spec roles and can click "
-                "**Join Queue** on my LFG posts — I'll DM us both.\n\n"
+                "**3.** PvP players receive their rating, class and spec roles "
+                "automatically.\n\n"
                 "Guests are removed after a period of inactivity; regulars get promoted "
                 "to **Friend** and never expire."),
         )
@@ -228,7 +228,7 @@ class Verification(commands.Cog):
                 "Welcome.\n\n"
                 "**1.** Verify your character.\n"
                 "**2.** Receive your PvP roles.\n"
-                "**3.** Queue whenever I'm looking for partners."),
+                "**3.** Jump into the arena."),
         )
         await interaction.channel.send(embed=embed, view=VerifyPanel())
         await interaction.response.send_message("✅ Panel posted.", ephemeral=True)

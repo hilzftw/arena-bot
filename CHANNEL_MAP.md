@@ -20,9 +20,6 @@ Get an ID: Discord → Settings → Advanced → Developer Mode on → right-cli
 | Welcome | ID | `WELCOME_CHANNEL_ID` | channel named `welcome` |
 | Rules | ID | `RULES_CHANNEL_ID` | channel named `rules` |
 | Verify | ID | `VERIFY_CHANNEL_ID` | none |
-| LFG 2v2 | ID | `CHANNEL_2V2_ID` | channel named `2v2` |
-| LFG 3v3 | ID | `CHANNEL_3V3_ID` | channel named `3v3` |
-| LFG 5v5 | ID | `CHANNEL_5V5_ID` | channel named `5v5` |
 | Voice category | ID | `VOICE_CATEGORY_ID` | none |
 | Twitch go-live | ID | `TWITCH_CHANNEL_ID` | channel named `twitchy-p-clips` |
 | Audit log | ID | `LOG_CHANNEL_ID` | channel named `bot-logs` |
@@ -109,6 +106,23 @@ skip it silently and there was no other command that could touch it.
 (member messages are never touched) and re-posts. Needs **Manage Messages** in the
 channel. `/setup-server` still uses the safe non-forcing path, so re-running it never
 spams a live channel.
+
+## Removed: LFG
+
+The `/lfg` command, the queue, and the persistent **Join Queue** buttons are gone,
+along with the `2v2` / `3v3` / `5v5` channels they posted into. Removed:
+
+- `cogs/lfg.py` (deleted), its cog registration and `add_dynamic_items(LFGJoinButton)`
+- `CHANNEL_2V2_ID` / `CHANNEL_3V3_ID` / `CHANNEL_5V5_ID`, `QUEUE_EXPIRY_MINUTES`
+- `HEALER_SPECS`, `BRACKET_SIZE`, `spec_role_kind()` in `config.py`
+- the `active_lfg` DB helpers and its `CREATE TABLE`
+- every bit of copy promising "Join Queue on any LFG post"
+
+`BRACKETS` / `BRACKET_NAMES` **stay** — `ironforge.py` uses them for ladder rating
+lookups during `/verify`. They are not LFG.
+
+The `active_lfg` table is **not** dropped on existing databases — no destructive
+migrations. It's simply never read or written again.
 
 ## Gotcha: `/setup-server`
 

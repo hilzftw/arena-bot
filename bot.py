@@ -1,9 +1,9 @@
 """
 Nightslayer Arenas — TBC Anniversary Classic PvP bot.
 
-A lightweight personal assistant for finding arena partners:
+A lightweight personal assistant for the arena community:
   • /verify + a persistent panel assign PvP roles
-  • /lfg posts a Join card; the bot DMs both matched players to team up
+  • Filtered TBC Classic news auto-posts to the news channel
   • Guests expire automatically; Friends never do
   • /friend, /blacklist, /whois, /cleanup for light moderation
 
@@ -22,7 +22,6 @@ import blizzard
 import db
 import ironforge
 from config import settings
-from cogs.lfg import LFGJoinButton
 from cogs.verification import VerifyPanel
 
 logging.basicConfig(
@@ -31,7 +30,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("bot")
 
-COGS = ["cogs.verification", "cogs.lfg", "cogs.moderation", "cogs.admin_setup",
+COGS = ["cogs.verification", "cogs.moderation", "cogs.admin_setup",
         "cogs.wow", "cogs.health"]
 if settings.twitch_enabled:
     COGS.append("cogs.twitch")
@@ -52,7 +51,6 @@ class ArenaBot(commands.Bot):
 
         # Register persistent interaction handlers.
         self.add_view(VerifyPanel())
-        self.add_dynamic_items(LFGJoinButton)
 
         for ext in COGS:
             await self.load_extension(ext)
