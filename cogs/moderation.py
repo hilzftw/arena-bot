@@ -134,7 +134,8 @@ class Moderation(commands.Cog):
         role = discord.utils.get(interaction.guild.roles, name="BIS")
         if role is None:
             await interaction.response.send_message(
-                "No **BIS** role — run `/setup-server` first.", ephemeral=True)
+                "No **BIS** role exists on this server — create it first.",
+                ephemeral=True)
             return
         await member.add_roles(role, reason=f"BIS by {interaction.user}")
         await core.log_event(interaction.guild,

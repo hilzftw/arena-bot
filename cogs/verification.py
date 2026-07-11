@@ -89,8 +89,8 @@ async def _grant_access_role(interaction: discord.Interaction, role_name: str,
     role = discord.utils.get(interaction.guild.roles, name=role_name)
     if role is None:
         await interaction.response.send_message(
-            "That access isn't set up yet — ask an admin to run `/setup-server`.",
-            ephemeral=True)
+            f"That access isn't set up yet — ask an admin to create the "
+            f"**{role_name}** role.", ephemeral=True)
         return
     if role in interaction.user.roles:
         await interaction.response.send_message("You already have that access. ✅", ephemeral=True)

@@ -124,13 +124,33 @@ lookups during `/verify`. They are not LFG.
 The `active_lfg` table is **not** dropped on existing databases — no destructive
 migrations. It's simply never read or written again.
 
-## Gotcha: `/setup-server`
+## Removed: `/setup-server`
 
-`/setup-server` used to unconditionally recreate `tbc-pvp-news`, `tbc-pve-news` and
-`retail-wow-news` — running it would have silently rebuilt the old channels and undone
-the merge. It now **adopts** the channel named in `NEWS_CHANNEL_ID` instead: moves it
-under the 📰 NEWS category and applies read-only overwrites. The legacy trio is only
-recreated when no news channel ID is configured anywhere.
+Gone, and worth knowing why. It was a one-shot provisioner that built the whole
+layout and then **deleted** channels and roles matching a hardcoded "dead" list
+(`DEAD_TEXT`, `DEAD_VOICE`, `DEAD_CATEGORIES`, `DEAD_ROLES`). Two problems:
+
+1. The layout it built no longer matched the real server. It would have created
+   `💬 COMMUNITY`, `⚔️ ARENA`, `📰 NEWS`, `⭐ BIS` **alongside** the actual
+   `BUSITWIDE` / `WORLD OF WARCRAFT` / `ADMIN` categories, duplicating everything.
+2. It recreated the three legacy news channels, silently undoing the merged feed.
+
+The server has been provisioned for months. A destructive rebuild command that
+no longer matches the thing it rebuilds can only cause damage, so it was deleted
+along with `_cleanup()`, `_hoist_roles()`, `_ensure_casual_role()`, `_setup_afk()`,
+`_rename_text()` and `_move_voice()`.
+
+**Nothing in the bot creates or deletes channels or roles any more.** The only
+`delete()` call left is `_purge_own()`, which removes the bot's own messages in
+`#welcome` during `/welcome refresh`.
+
+Still available from the admin cog:
+
+| Command | Who | What |
+|---|---|---|
+| `/welcome refresh` | staff | Replace the bot's welcome post + verify panel |
+| `/welcome here` | staff | Print this channel's ID for `WELCOME_CHANNEL_ID` |
+| `/move-channel` | owner | Move a channel into a category, preserving its overwrites |
 
 ## If news goes quiet again
 
