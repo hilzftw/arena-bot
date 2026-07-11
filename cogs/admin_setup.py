@@ -19,6 +19,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+import db
 from config import settings, COLOR_GOLD, COLOR_BLUE, COLOR_RED
 
 log = logging.getLogger("setup")
@@ -32,7 +33,9 @@ ADMIN = "🔒 ADMIN"
 BIS = "⭐ BIS"
 VOICE = "🔊 VOICE"
 
-NEWS_CHANNELS = ("tbc-pvp-news", "tbc-pve-news", "retail-wow-news")
+# Legacy three-channel news layout. Only recreated when NEWS_CHANNEL_ID is unset —
+# otherwise /setup-server would rebuild the old channels and undo a merged feed.
+LEGACY_NEWS_CHANNELS = ("tbc-pvp-news", "tbc-pve-news", "retail-wow-news")
 
 # Channels to delete outright (lowercased names). "arena" handled separately by type.
 DEAD_TEXT = {"fuck-12", "announcements", "5v5-push"}
@@ -47,6 +50,17 @@ RULES_BODY = (
     "**2. No account sharing.** Verify your own character.\n"
     "**3. No spam.** Keep channels on-topic.\n"
     "**4. Have fun and win games.** 🏆"
+)
+
+WELCOME_TITLE = "⚔️ NIGHTSLAYER ARENAS"
+WELCOME_BODY = (
+    "A private **TBC Classic** PvP hub — arena partners only.\n\n"
+    "Tap **Get Started** below and pick your path:\n"
+    "🎮 **WoW** → **⚔️ PvP** (verify your character, unlock LFG) "
+    "or **🛡️ PvE**\n"
+    "😎 **Chill** → community access, no WoW required\n\n"
+    "Verified PvP players get their rating, class and spec roles automatically, "
+    "and can **Join Queue** on any LFG post."
 )
 
 
@@ -105,7 +119,93 @@ class AdminSetup(commands.Cog):
             await ch.edit(sync_permissions=True)
         return ch
 
+    @staticmethod
+    async def _configured_news_channel_id() -> int:
+        """Merged news channel id: /news channel override, else NEWS_CHANNEL_ID."""
+        raw = await db.get_setting("news_channel_id", "")
+        if raw.isdigit():
+            return int(raw)
+        return settings.news_channel_id
+
+    @staticmethod
+    def _by_id_or_name(guild: discord.Guild, channel_id: int,
+                       name: str) -> Optional[discord.TextChannel]:
+        """ID first (rename-proof), then name (legacy servers)."""
+        if channel_id:
+            ch = guild.get_channel(channel_id)
+            if isinstance(ch, discord.TextChannel):
+                return ch
+            log.warning("Configured channel %s not found — falling back to #%s",
+                        channel_id, name)
+        return discord.utils.get(guild.text_channels, name=name)
+
+    def _welcome_channel(self, guild: discord.Guild) -> Optional[discord.TextChannel]:
+        return self._by_id_or_name(guild, settings.welcome_channel_id, "welcome")
+
+    def _rules_channel(self, guild: discord.Guild) -> Optional[discord.TextChannel]:
+        return self._by_id_or_name(guild, settings.rules_channel_id, "rules")
+
+    async def _welcome_embed(self, guild: discord.Guild) -> discord.Embed:
+        """Intro embed. Links the merged news channel by mention when it resolves."""
+        embed = discord.Embed(title=WELCOME_TITLE, description=WELCOME_BODY,
+                              color=COLOR_GOLD)
+        news_id = await self._configured_news_channel_id()
+        news = guild.get_channel(news_id) if news_id else None
+        if isinstance(news, discord.TextChannel):
+            embed.add_field(
+                name="📰 News",
+                value=f"TBC Classic PvP & PvE news posts automatically in {news.mention}.",
+                inline=False)
+        return embed
+
     # ── commands ─────────────────────────────────────────────────────────────
+    welcome = app_commands.Group(name="welcome",
+                                 description="Welcome channel + verify panel controls.")
+
+    @welcome.command(name="refresh",
+                     description="[Staff] Delete the bot's old welcome posts and re-post "
+                                 "a fresh intro + verify panel.")
+    async def welcome_refresh(self, interaction: discord.Interaction) -> None:
+        from core import is_staff
+        if not is_staff(interaction.user):
+            await interaction.response.send_message("❌ Staff only.", ephemeral=True)
+            return
+
+        guild = interaction.guild
+        channel = self._welcome_channel(guild)
+        if channel is None:
+            await interaction.response.send_message(
+                "❌ No welcome channel resolved. Set `WELCOME_CHANNEL_ID`, or use "
+                "`/welcome here` in the channel you want.", ephemeral=True)
+            return
+
+        perms = channel.permissions_for(guild.me)
+        if not (perms.send_messages and perms.manage_messages):
+            await interaction.response.send_message(
+                f"❌ I need **Send Messages** and **Manage Messages** in {channel.mention} "
+                f"to replace the old panel.", ephemeral=True)
+            return
+
+        await interaction.response.defer(ephemeral=True)
+        self.log.clear()
+        await self._seed(guild, force=True)
+        await interaction.followup.send(
+            f"✅ {channel.mention} refreshed:\n" + "\n".join(f"• {n}" for n in self.log),
+            ephemeral=True)
+
+    @welcome.command(name="here",
+                     description="[Staff] Use THIS channel as the welcome channel.")
+    async def welcome_here(self, interaction: discord.Interaction) -> None:
+        from core import is_staff
+        if not is_staff(interaction.user):
+            await interaction.response.send_message("❌ Staff only.", ephemeral=True)
+            return
+        await interaction.response.send_message(
+            f"ℹ️ Set `WELCOME_CHANNEL_ID={interaction.channel_id}` in your environment "
+            f"and redeploy, then run `/welcome refresh`.\n"
+            f"(Channel ID is stored in env, not the DB, so it survives a DB reset.)",
+            ephemeral=True)
+
     @app_commands.command(name="move-channel",
                           description="[Owner] Move a channel into a category, keeping its permissions.")
     @app_commands.describe(channel="Channel to move",
@@ -207,8 +307,24 @@ class AdminSetup(commands.Cog):
                 if role != me:
                     o.update(send_messages=False)
             news_ovw[me] = ow(view_channel=True, send_messages=True)
-            for nm in NEWS_CHANNELS:
-                await self._text(guild, nm, news, overwrites=news_ovw)
+
+            # If a merged news channel is configured, adopt it: move it under NEWS
+            # and apply the read-only overwrites. Recreating the legacy trio here
+            # would silently undo the merge, so it only runs when nothing is set.
+            merged_id = await self._configured_news_channel_id()
+            merged = guild.get_channel(merged_id) if merged_id else None
+            if isinstance(merged, discord.TextChannel):
+                if merged.category_id != news.id:
+                    await merged.edit(category=news)
+                    self._note(f"Moved #{merged.name} into {news.name}")
+                await merged.edit(overwrites=news_ovw)
+                self._note(f"Adopted #{merged.name} as the news channel (read-only)")
+            else:
+                if merged_id:
+                    self._note(f"⚠️ Configured news channel {merged_id} not found — "
+                               f"rebuilding the legacy news channels")
+                for nm in LEGACY_NEWS_CHANNELS:
+                    await self._text(guild, nm, news, overwrites=news_ovw)
 
             # 4. ADMIN — hidden to all but staff. bot-logs is bot-write-only.
             staff_ovw = {everyone: ow(view_channel=False), me: ow(view_channel=True)}
@@ -346,30 +462,57 @@ class AdminSetup(commands.Cog):
         await guild.edit(afk_channel=afk, afk_timeout=300)
         self._note("Set native AFK channel (5 min timeout)")
 
-    async def _seed(self, guild: discord.Guild) -> None:
+    async def _purge_own(self, channel: discord.TextChannel, limit: int = 50) -> int:
+        """Delete the bot's own messages in a channel. Never touches anyone else's."""
+        deleted = 0
+        async for msg in channel.history(limit=limit):
+            if msg.author.id == self.bot.user.id:
+                try:
+                    await msg.delete()
+                    deleted += 1
+                except discord.HTTPException:
+                    pass
+        return deleted
+
+    async def _seed(self, guild: discord.Guild, force: bool = False) -> None:
+        """Post the welcome intro + panel and the rules body.
+
+        Without `force` this only writes into an *empty* channel, so a re-run of
+        /setup-server never spams a live channel. `force` (used by /welcome refresh)
+        first deletes the bot's own old messages, then re-posts — that's the only way
+        to replace a stale or duplicated panel, which the old empty-channel-only
+        check made impossible.
+        """
         from cogs.verification import VerifyPanel
-        welcome = discord.utils.get(guild.text_channels, name="welcome")
-        rules = discord.utils.get(guild.text_channels, name="rules")
-        if welcome:
-            async for _ in welcome.history(limit=1):
-                break
-            else:
-                embed = discord.Embed(
-                    title="⚔️ NIGHTSLAYER ARENAS", color=COLOR_GOLD, description=(
-                        "A private TBC Classic PvP hub — arena partners only.\n\n"
-                        "Tap **Get Started** to pick your path:\n"
-                        "🎮 **WoW** → PvP (verify your character) or PvE\n"
-                        "😎 **Chill** → plain community access\n\n"
-                        "PvP players receive their rating/class/spec roles and can "
-                        "**Join Queue** on my LFG posts."))
-                await welcome.send(embed=embed, view=VerifyPanel())
-                self._note("Posted #welcome intro + verify panel")
-        if rules:
-            async for _ in rules.history(limit=1):
-                break
-            else:
+
+        welcome = self._welcome_channel(guild)
+        rules = self._rules_channel(guild)
+
+        if welcome is None:
+            self._note("⚠️ No welcome channel found — set WELCOME_CHANNEL_ID")
+        else:
+            if force:
+                n = await self._purge_own(welcome)
+                self._note(f"Cleared {n} old bot message(s) from #{welcome.name}")
+            if force or await self._is_empty(welcome):
+                await welcome.send(embed=await self._welcome_embed(guild),
+                                   view=VerifyPanel())
+                self._note(f"Posted #{welcome.name} intro + verify panel")
+
+        if rules is None:
+            self._note("⚠️ No rules channel found — set RULES_CHANNEL_ID")
+        else:
+            if force:
+                await self._purge_own(rules)
+            if force or await self._is_empty(rules):
                 await rules.send(RULES_BODY)
-                self._note("Posted #rules content")
+                self._note(f"Posted #{rules.name} content")
+
+    @staticmethod
+    async def _is_empty(channel: discord.TextChannel) -> bool:
+        async for _ in channel.history(limit=1):
+            return False
+        return True
 
     async def _cleanup(self, guild: discord.Guild) -> None:
         for ch in list(guild.channels):

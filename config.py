@@ -75,6 +75,9 @@ class Settings:
     verify_channel_id: int
     lfg_channel_ids: dict[str, int]        # "2v2" -> channel id
     voice_category_id: int
+    # 0 = fall back to a channel named "welcome" / "rules".
+    welcome_channel_id: int
+    rules_channel_id: int
 
     # Class/spec cosmetic roles resolved by name (auto-created if enabled)
     manage_class_spec_roles: bool
@@ -108,6 +111,19 @@ class Settings:
     # WoW News module (feature-flagged)
     news_enabled: bool
     news_poll_minutes: int
+    # Single merged news channel. 0 = fall back to the legacy per-category
+    # channels resolved by name (tbc-pvp-news / tbc-pve-news / retail-wow-news).
+    news_channel_id: int
+    # Safety valve: max articles posted per poll, so a backlog can't flood the
+    # channel after downtime. Remainder is marked seen and skipped.
+    news_max_per_run: int
+    # Categories allowed to post. Default is TBC Classic only — retail is still
+    # *classified* (so it can never misroute into a TBC embed) but not posted.
+    # Add "retail" here to turn it back on; no code change needed.
+    news_categories: frozenset[str]
+
+    # Audit log channel. 0 = fall back to a channel named #bot-logs.
+    log_channel_id: int
 
     # Storage
     db_path: str
@@ -144,6 +160,8 @@ class Settings:
             verify_channel_id=_int("VERIFY_CHANNEL_ID"),
             lfg_channel_ids=lfg_channel_ids,
             voice_category_id=_int("VOICE_CATEGORY_ID"),
+            welcome_channel_id=_int("WELCOME_CHANNEL_ID"),
+            rules_channel_id=_int("RULES_CHANNEL_ID"),
             manage_class_spec_roles=_str("MANAGE_CLASS_SPEC_ROLES", "true").lower() == "true",
             guest_expiration_days=_int("GUEST_EXPIRATION_DAYS", 30),
             verify_timeout_hours=_int("VERIFY_TIMEOUT_HOURS", 24),
@@ -164,6 +182,14 @@ class Settings:
             twitch_poll_minutes=_int("TWITCH_POLL_MINUTES", 3),
             news_enabled=_str("NEWS_ENABLED", "true").lower() == "true",
             news_poll_minutes=_int("NEWS_POLL_MINUTES", 20),
+            news_channel_id=_int("NEWS_CHANNEL_ID"),
+            news_max_per_run=_int("NEWS_MAX_PER_RUN", 8),
+            news_categories=frozenset(
+                c.strip().lower()
+                for c in _str("NEWS_CATEGORIES", "tbc-pvp,tbc-pve").split(",")
+                if c.strip()
+            ),
+            log_channel_id=_int("LOG_CHANNEL_ID"),
             db_path=_str("DB_PATH", "bot.db"),
         )
 

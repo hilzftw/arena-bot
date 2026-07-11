@@ -166,10 +166,16 @@ def guest_expiry_ts() -> int:
 
 async def log_event(guild: Optional[discord.Guild], description: str,
                     color: int = COLOR_BLUE) -> None:
-    """Post an audit entry to #bot-logs. No-op if the channel doesn't exist."""
+    """Post an audit entry to the log channel. No-op if it doesn't exist.
+
+    Resolves by LOG_CHANNEL_ID first so a rename can't detach the audit log; falls
+    back to a channel named #bot-logs for servers that never set the env var.
+    """
     if guild is None:
         return
-    channel = discord.utils.get(guild.text_channels, name="bot-logs")
+    channel = guild.get_channel(settings.log_channel_id) if settings.log_channel_id else None
+    if not isinstance(channel, discord.TextChannel):
+        channel = discord.utils.get(guild.text_channels, name="bot-logs")
     if channel is None:
         return
     try:

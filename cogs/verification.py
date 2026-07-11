@@ -119,8 +119,8 @@ class PvPvEView(discord.ui.View):
     async def pve(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
         await _grant_access_role(
             interaction, "PvE",
-            "🛡️ Welcome, PvE'er! Community channels and PvE news are unlocked. The "
-            "**arena** stays PvP-only — verify a character anytime to unlock LFG.")
+            "🛡️ Welcome, PvE'er! Community channels and the TBC news feed are unlocked. "
+            "The **arena** stays PvP-only — verify a character anytime to unlock LFG.")
 
 
 class WoWChillView(discord.ui.View):
